@@ -1,0 +1,2687 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ForestWise – Intelligent Tree Recommendations</title>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+  
+  <!-- Icons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- jsPDF and html2canvas -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui'],
+            serif: ['Playfair Display', 'Georgia']
+          },
+          colors: {
+            forest: {
+              50: '#f0f9f4', 100: '#e6f2ec', 500: '#1B4F30', 600: '#164027', 700: '#11301E', 800: '#0c2015', 900: '#08100c'
+            },
+            gold: { 400: '#D4AF37', 500: '#C49D2F', 600: '#B38D27' },
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root {
+      --glow: 0 0 20px rgba(212, 175, 55, 0.3);
+      --glow-strong: 0 0 30px rgba(212, 175, 55, 0.5);
+      --transition-base: all 0.3s ease;
+    }
+
+    /* === PROPER FLOATING ORB === */
+.floating-orb {
+    position: fixed;
+    top: 1.5rem;
+    left: 1.5rem;
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1000;
+    font-size: 1.5rem;
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    box-shadow: 
+        0 0 30px rgba(212, 175, 55, 0.4),
+        inset 0 0 20px rgba(255, 255, 255, 0.1);
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    animation: floatOrb 6s ease-in-out infinite;
+}
+
+.floating-orb:hover {
+    transform: scale(1.2);
+    box-shadow: 
+        0 0 40px rgba(212, 175, 55, 0.6),
+        inset 0 0 30px rgba(255, 255, 255, 0.2);
+}
+
+@keyframes floatOrb {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(5deg); }
+}
+
+.orb-menu {
+    position: fixed;
+    top: 1.5rem;
+    left: 1.5rem;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 70px 1.5rem 1.5rem 1.5rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    z-index: 999;
+    opacity: 0;
+    transform: translateX(-20px) scale(0.95);
+    pointer-events: none;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    min-width: 200px;
+}
+
+.orb-menu.active {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    pointer-events: all;
+}
+
+.dark .orb-menu {
+    background: rgba(27, 79, 48, 0.95);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+/* Mobile fixes */
+@media (max-width: 768px) {
+    .floating-orb {
+        top: 1rem;
+        left: 1rem;
+        width: 45px;
+        height: 45px;
+        font-size: 1.3rem;
+    }
+    
+    .orb-menu {
+        top: 1rem;
+        left: 1rem;
+        right: 1rem;
+        padding: 60px 1rem 1rem 1rem;
+        min-width: auto;
+    }
+}
+    .menu-item {
+      display: flex;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      margin: 0.5rem 0;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      color: #1B4F30;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .menu-item:hover {
+      background: linear-gradient(135deg, rgba(27, 79, 48, 0.1), rgba(212, 175, 55, 0.1));
+      transform: translateX(10px);
+    }
+
+    .menu-item.active {
+      background: linear-gradient(135deg, #1B4F30, #2E8B57);
+      color: white;
+    }
+
+    .dark .menu-item {
+      color: #D4AF37;
+    }
+
+    .dark .menu-item.active {
+      background: linear-gradient(135deg, #D4AF37, #1B4F30);
+      color: white;
+    }
+
+    .menu-icon {
+      width: 24px;
+      margin-right: 12px;
+      text-align: center;
+    }
+
+    /* === PAGE TRANSITIONS === */
+    .page {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      transform: scale(0.95);
+      pointer-events: none;
+      transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      overflow-y: auto;
+      z-index: 1;
+    }
+
+    .page.active {
+      opacity: 1;
+      transform: scale(1);
+      pointer-events: all;
+    }
+
+    .page.exit {
+      opacity: 0;
+      transform: scale(1.05);
+    }
+
+    /* === LOADING STATES === */
+    .page-loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+
+    .loading-pulse {
+      animation: pulse 2s infinite;
+    }
+
+    /* --- Animations --- */
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(212, 175, 55, 0); } 100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); } }
+
+    .fade-in { animation: fadeInUp 0.8s ease-out forwards; opacity: 0; }
+    .floating { animation: float 6s ease-in-out infinite; }
+    .pulse { animation: pulse 2s infinite; }
+
+    /* --- Layout & Structure --- */
+    .logo { font-family: 'Playfair Display', serif; font-weight: 800; }
+    .glass { background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 24px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); }
+    .dark .glass { background: rgba(20, 40, 30, 0.25); border: 1px solid rgba(168, 216, 185, 0.15); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); }
+    .card-hover { transition: var(--transition-base); }
+    .card-hover:hover { transform: translateY(-12px) scale(1.01); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15); }
+
+    /* --- Interactive Elements --- */
+    .chip { display: inline-flex; align-items: center; padding: 0.4rem 1rem; border-radius: 50px; font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: var(--transition-base); border: 1.5px solid transparent; }
+    .chip.active { background: linear-gradient(135deg, #1B4F30, #2E8B57); color: white; border-color: #1B4F30; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); }
+    .chip:hover:not(.active) { background: rgba(27, 79, 48, 0.15); border-color: rgba(27, 79, 48, 0.4); }
+    .btn-glow { box-shadow: var(--glow); transition: var(--transition-base); }
+    .btn-glow:hover { box-shadow: var(--glow-strong); transform: translateY(-2px); }
+    .range-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, #d4af37, #1B4F30); }
+    .range-thumb { appearance: none; height: 20px; width: 20px; border-radius: 50%; background: #d4af37; cursor: pointer; border: 2px solid white; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2); transition: var(--transition-base); }
+    .range-thumb:hover { transform: scale(1.1); }
+    .dark .range-thumb { background: #e0c870; }
+    .progress-bar { height: 4px; background: #d4af37; width: 0%; transition: width 1.2s ease; }
+    .highlight { color: #d4af37; font-weight: 600; }
+    .modal { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); z-index: 100; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+    .modal.show { opacity: 1; pointer-events: all; }
+    .modal-content { width: 90%; max-width: 900px; border-radius: 28px; overflow: hidden; transform: scale(0.95); transition: transform 0.4s ease; }
+    .modal.show .modal-content { transform: scale(1); }
+
+    /* --- Specific Styling --- */
+    .species-img { height: 200px; border-radius: 20px 20px 0 0; object-fit: cover; background: #a8d8b9; }
+    .qa-widget { position: fixed; bottom: 20px; right: 20px; z-index: 100; }
+    .footer-text { font-size: 0.9em; opacity: 0.8; }
+    .ai-response { padding: 0.75rem; background-color: #f3f4f6; border-radius: 0.5rem; margin-top: 0.5rem; }
+    .dark .ai-response { background-color: #1f2937; }
+    .ai-response.loading { font-style: italic; color: #6b7280; }
+    .dark .ai-response.loading { color: #9ca3af; }
+    .loading-spinner { border: 4px solid #f3f4f6; border-top: 4px solid #1B4F30; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; margin-left: 10px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    /* --- Dynamic Background --- */
+    .dynamic-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; }
+    .bg-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(0, 0, 0, 0.6), rgba(27, 79, 48, 0.4)); z-index: -1; }
+    .particles { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+    .particle { position: absolute; width: 4px; height: 4px; background-color: rgba(212, 175, 55, 0.7); border-radius: 50%; animation: floatParticle 10s infinite linear; }
+    @keyframes floatParticle { 0% { transform: translateY(0) translateX(0); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateY(-100vh) translateX(100px); opacity: 0; } }
+
+    /* --- Hide Results Initially --- */
+    #resultsSection { display: none; }
+
+    /* Slideshow Styles */
+    .slideshow-slide {
+      opacity: 0;
+      transform: scale(1.05);
+      transition: all 1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .slideshow-slide.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .slideshow-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .slideshow-dot.active {
+      background: #D4AF37;
+      transform: scale(1.3);
+    }    
+
+    /* FIX FOR HERO SECTION CENTERING */
+    .relative.h-screen.flex.items-center.justify-center {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        text-align: center !important;
+    }
+
+    .relative.z-10.max-w-5xl.px-6.fade-in {
+        margin-left: auto !important;
+        margin-right: auto !important;
+        text-align: center !important;
+    }
+
+    /* === ENHANCED MICRO-INTERACTIONS === */
+
+    /* Button pulse and glow effects */
+    .btn-magic {
+      position: relative;
+      overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .btn-magic::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .btn-magic:hover::before {
+      left: 100%;
+    }
+
+    .btn-magic:hover {
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 15px 30px rgba(212, 175, 55, 0.3);
+    }
+
+    /* Chip enhancements */
+    .chip {
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .chip::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      background: radial-gradient(circle, rgba(212, 175, 55, 0.3) 0%, transparent 70%);
+      transition: all 0.3s ease;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .chip:hover::after {
+      width: 100px;
+      height: 100px;
+    }
+
+    .chip:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(27, 79, 48, 0.2);
+    }
+
+    /* Form input enhancements */
+    .input-glow {
+      transition: all 0.3s ease;
+    }
+
+    .input-glow:focus {
+      transform: translateY(-1px);
+      box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2), 0 8px 20px rgba(27, 79, 48, 0.1);
+    }
+
+    /* Card hover enhancements */
+    .card-magic {
+      transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      position: relative;
+    }
+
+    .card-magic::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 0;
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), transparent);
+      transition: height 0.4s ease;
+      border-radius: 24px;
+    }
+
+    .card-magic:hover::before {
+      height: 100%;
+    }
+
+    .card-magic:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 
+        0 25px 50px rgba(0, 0, 0, 0.15),
+        0 0 100px rgba(212, 175, 55, 0.1);
+    }
+
+    /* Navigation menu item animations */
+    .nav-item {
+      position: relative;
+      transition: all 0.3s ease;
+    }
+
+    .nav-item::after {
+      content: '';
+      position: absolute;
+      bottom: -5px;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #D4AF37, #1B4F30);
+      transition: width 0.3s ease;
+    }
+
+    .nav-item:hover::after {
+      width: 100%;
+    }
+
+    .nav-item:hover {
+      transform: translateY(-2px);
+    }
+
+    /* Loading spinner animation */
+    .loading-spinner {
+      border: 4px solid #f3f4f6;
+      border-top: 4px solid #1B4F30;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-left: 10px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Progress bar glow */
+    .progress-bar-glow {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .progress-bar-glow::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { left: -100%; }
+      100% { left: 100%; }
+    }
+
+    /* Floating animation for elements */
+    .float-gentle {
+      animation: floatGentle 6s ease-in-out infinite;
+    }
+
+    @keyframes floatGentle {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-10px) rotate(1deg); }
+    }
+
+    /* Text gradient animations */
+    .text-gradient-animate {
+      background: linear-gradient(-45deg, #1B4F30, #D4AF37, #164027, #C49D2F);
+      background-size: 400% 400%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: gradientShift 8s ease infinite;
+    }
+
+    /* === ENHANCED RESULTS CARDS === */
+
+    /* Card entrance animations */
+    @keyframes cardEntrance {
+      from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .scroll-reveal {
+      animation: cardEntrance 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    }
+
+    /* Species image hover effect */
+    .species-image {
+      transition: transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .species-image:hover {
+      transform: scale(1.15);
+    }
+
+    /* Match percentage glow */
+    .progress-bar-glow {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .progress-bar-glow::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { left: -100%; }
+      100% { left: 100%; }
+    }
+
+    /* Chip hover enhancements */
+    .chip {
+      transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .chip::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.1), transparent);
+      transition: left 0.5s;
+    }
+
+    .chip:hover::before {
+      left: 100%;
+    }
+
+    /* Button group hover effects */
+    .group:hover .group-hover\:scale-110 {
+      transform: scale(1.1);
+    }
+
+    /* Card gradient overlay on hover */
+    .card-magic::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.03) 0%, transparent 50%);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      pointer-events: none;
+      border-radius: 20px;
+    }
+
+    .card-magic:hover::after {
+      opacity: 1;
+    }
+
+    /* Chat Widget Styles */
+    .chat-message {
+      clear: both;
+    }
+
+    .user-message {
+      text-align: right;
+    }
+
+    .assistant-message {
+      text-align: left;
+    }
+
+    .typing-dots {
+      display: inline-block;
+    }
+
+    .typing-dots span {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #6b7280;
+      margin: 0 1px;
+      animation: typing 1.4s infinite ease-in-out;
+    }
+
+    .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes typing {
+      0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Chat input enhancements */
+    #chatInput:focus {
+      transform: translateY(-1px);
+      box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
+    }
+
+    /* FIX FOR PARTICLES */
+    #particlesContainer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background-color: rgba(212, 175, 55, 0.7);
+      border-radius: 50%;
+      animation: floatParticle 20s infinite linear;
+    }
+
+    @keyframes floatParticle {
+      0% {
+        transform: translateY(100vh) translateX(0);
+        opacity: 0;
+      }
+      10% {
+        opacity: 1;
+      }
+      90% {
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-100px) translateX(100px);
+        opacity: 0;
+      }
+    }
+
+    /* FIX FOR SLIDERS */
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: linear-gradient(90deg, #d4af37, #1B4F30);
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #d4af37;
+      cursor: pointer;
+      border: 2px solid white;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #d4af37;
+      cursor: pointer;
+      border: 2px solid white;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Loading States */
+    .loading-pulse {
+      animation: pulse 1.5s infinite;
+    }
+
+    .loading-spinner {
+      border: 3px solid #f3f4f6;
+      border-top: 3px solid #1B4F30;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    .loading-shimmer {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    /* ===== NEW STYLES FOR ENHANCED FEATURES ===== */
+
+    /* Radar Chart Container */
+    .radar-container {
+      position: relative;
+      height: 300px;
+      margin: 2rem 0;
+    }
+
+    /* Project Category Badges */
+    .project-category-agroforestry { border-left-color: #22c55e; background: linear-gradient(135deg, rgba(34, 197, 94, 0.05), transparent); }
+    .project-category-restoration { border-left-color: #84cc16; background: linear-gradient(135deg, rgba(132, 204, 22, 0.05), transparent); }
+    .project-category-carbon { border-left-color: #ef4444; background: linear-gradient(135deg, rgba(239, 68, 68, 0.05), transparent); }
+    .project-category-watershed { border-left-color: #3b82f6; background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), transparent); }
+    .project-category-urban { border-left-color: #8b5cf6; background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), transparent); }
+
+    /* Soil Data Confidence Indicators */
+    .confidence-high { color: #10b981; }
+    .confidence-medium { color: #f59e0b; }
+    .confidence-low { color: #ef4444; }
+
+    /* Progress Timeline */
+    .timeline-item {
+      position: relative;
+      padding-left: 2rem;
+      margin-bottom: 1.5rem;
+    }
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0.5rem;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #d4af37;
+    }
+    .timeline-item::after {
+      content: '';
+      position: absolute;
+      left: 5px;
+      top: 1.5rem;
+      bottom: -1.5rem;
+      width: 2px;
+      background: #e5e7eb;
+    }
+    .timeline-item:last-child::after {
+      display: none;
+    }
+
+    /* Enhanced Modal Styles */
+    .modal-enhanced {
+      backdrop-filter: blur(16px);
+      background: rgba(0, 0, 0, 0.7);
+    }
+
+    /* Soil Data Cards */
+    .soil-data-card {
+      transition: all 0.3s ease;
+      border: 1px solid rgba(212, 175, 55, 0.1);
+    }
+    .soil-data-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    /* API Status Indicators */
+    .api-status-connected { color: #10b981; }
+    .api-status-disconnected { color: #ef4444; }
+    .api-status-loading { color: #f59e0b; }
+
+    /* Enhanced Map Controls */
+    .map-controls {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Project Type Selector */
+    .project-type-selector {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 0.5rem;
+      margin: 1rem 0;
+    }
+    .project-type-option {
+      padding: 0.75rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .project-type-option.selected {
+      border-color: #d4af37;
+      background: rgba(212, 175, 55, 0.05);
+      transform: scale(1.05);
+    }
+
+    /* Enhanced Form UX */
+    .form-group {
+      position: relative;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: #1B4F30;
+      transition: all 0.3s ease;
+    }
+
+    .dark .form-label {
+      color: #D4AF37;
+    }
+
+    .form-helper {
+      font-size: 0.875rem;
+      color: #6B7280;
+      margin-top: 0.25rem;
+    }
+
+    .form-error {
+      color: #EF4444;
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+    }
+
+    /* Enhanced Tooltips */
+    .tooltip {
+      position: relative;
+      display: inline-block;
+    }
+
+    .tooltip .tooltip-text {
+      visibility: hidden;
+      width: 200px;
+      background-color: #1B4F30;
+      color: white;
+      text-align: center;
+      border-radius: 8px;
+      padding: 8px;
+      position: absolute;
+      z-index: 1000;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 0.875rem;
+    }
+
+    .tooltip:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    /* Enhanced Progress Indicators */
+    .progress-ring {
+      transform: rotate(-90deg);
+    }
+
+    .progress-ring-circle {
+      transition: stroke-dashoffset 0.35s;
+      transform: rotate(90deg);
+      transform-origin: 50% 50%;
+    }
+
+    /* Notification styles */
+    .notification {
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(10px);
+    }
+
+    /* Favorites button animation */
+    #favoritesBtn:hover .fa-heart {
+      animation: heartBeat 0.6s ease-in-out;
+    }
+
+    @keyframes heartBeat {
+      0%, 100% { transform: scale(1); }
+      25% { transform: scale(1.2); }
+      50% { transform: scale(0.9); }
+      75% { transform: scale(1.1); }
+    }
+
+    /* Share button animation */
+    #shareBtn:hover .fa-share-alt {
+      animation: shareSpin 0.6s ease-in-out;
+    }
+
+    @keyframes shareSpin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Export button animation */
+    #exportPdfBtn:hover .fa-file-pdf {
+      animation: pdfBounce 0.6s ease-in-out;
+    }
+
+    @keyframes pdfBounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+
+    /* Badge styles */
+    #favoritesBadge {
+      font-size: 0.7rem;
+      font-weight: bold;
+      box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
+    }
+
+    /* Favorite star in species cards */
+    .favorite-star {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      z-index: 20;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
+
+    .favorite-star:hover {
+      transform: scale(1.1);
+      background: rgba(255, 255, 255, 1);
+    }
+
+    .favorite-star.favorited {
+      color: #ef4444;
+      animation: favoritePop 0.4s ease-out;
+    }
+
+    @keyframes favoritePop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.3); }
+      100% { transform: scale(1); }
+    }
+
+    /* ===== LOCATION DETECTION STYLES ===== */
+    .location-detected {
+      border-left: 4px solid #10B981 !important;
+      background: rgba(16, 185, 129, 0.05) !important;
+    }
+
+    .location-loading {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .location-loading::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.1), transparent);
+      animation: locationShimmer 1.5s infinite;
+    }
+
+    @keyframes locationShimmer {
+      0% { left: -100%; }
+      100% { left: 100%; }
+    }
+
+    .location-pill {
+      display: inline-flex;
+      align-items: center;
+      background: linear-gradient(135deg, #1B4F30, #2E8B57);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 50px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-left: 0.5rem;
+      animation: slideIn 0.5s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    /* ===== MOBILE RESPONSIVENESS FIXES ===== */
+    @media (max-width: 768px) {
+      /* Hero section */
+      .text-5xl { font-size: 2.5rem !important; }
+      .text-8xl { font-size: 3rem !important; }
+      
+      /* Navigation */
+      nav .max-w-6xl { padding-left: 1rem; padding-right: 1rem; }
+      
+      /* Tool section */
+      #tool .grid { grid-template-columns: 1fr !important; gap: 2rem; }
+      #tool .glass { padding: 1.5rem !important; }
+      
+      /* Forms */
+      input, select, textarea {
+        font-size: 16px !important; /* Prevents zoom on iOS */
+      }
+      
+      /* Results grid */
+      #resultsContainer.grid {
+        grid-template-columns: 1fr !important;
+        gap: 1.5rem;
+      }
+      
+      /* Slideshow */
+      #natureSlideshow .relative.h-96 {
+        height: 250px !important;
+      }
+      
+      /* Modals */
+      .modal-content {
+        width: 95% !important;
+        margin: 1rem;
+      }
+      
+      /* Buttons */
+      button {
+        min-height: 44px; /* Better touch targets */
+        padding: 12px 16px;
+      }
+      
+      /* Chat widget */
+      .qa-widget {
+        bottom: 10px;
+        right: 10px;
+      }
+      #chatBox {
+        width: 300px !important;
+      }
+
+      /* Location button */
+      #detectLocationBtn {
+        width: 100%;
+        margin-top: 1rem;
+      }
+
+      /* Mapping section */
+      #mappingSection .grid {
+        grid-template-columns: 1fr !important;
+      }
+
+      /* Soil health wizard */
+      .assessment-option .grid {
+        grid-template-columns: 1fr !important;
+      }
+
+      /* Enhanced features mobile fixes */
+      .project-type-selector {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .radar-container {
+        height: 250px;
+      }
+      
+      .map-controls {
+        padding: 0.75rem;
+      }
+      
+      .api-status {
+        font-size: 0.8rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      /* Extra small phones */
+      .text-3xl { font-size: 1.75rem !important; }
+      .text-4xl { font-size: 2rem !important; }
+      
+      /* Reduce padding */
+      .px-6 { padding-left: 1rem !important; padding-right: 1rem !important; }
+      .py-32 { padding-top: 4rem !important; padding-bottom: 4rem !important; }
+      
+      /* Stack form elements */
+      .grid-cols-2 { grid-template-columns: 1fr !important; }
+      
+      /* Project type selector */
+      .project-type-selector {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Better touch targets for mobile */
+    @media (hover: none) and (pointer: coarse) {
+      .chip, button, [role="button"] {
+        min-height: 44px;
+        min-width: 44px;
+      }
+      
+      /* Increase tap target size */
+      .nav-item {
+        padding: 12px 16px;
+      }
+      
+      .project-type-option {
+        padding: 1rem 0.5rem;
+      }
+    }
+
+    /* Prevent horizontal scrolling */
+    html, body {
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+
+    /* Improve text readability on mobile */
+    @media (max-width: 768px) {
+      body {
+        font-size: 16px;
+        line-height: 1.6;
+      }
+      
+      h1 { font-size: 2rem !important; }
+      h2 { font-size: 1.75rem !important; }
+      h3 { font-size: 1.5rem !important; }
+    }
+
+    /* Reset button specific styles */
+    #resetBtn {
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    #resetBtn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(27, 79, 48, 0.2);
+    }
+
+    #resetBtn:active {
+      transform: translateY(0);
+    }
+
+    /* Soil wizard specific styles */
+    .wizard-step {
+      transition: all 0.5s ease-in-out;
+    }
+
+    .assessment-option input:checked + div {
+      border-color: #D4AF37;
+      background: rgba(212, 175, 55, 0.05);
+      transform: scale(1.02);
+    }
+
+    .health-score-excellent {
+      background: linear-gradient(135deg, #10B981, #059669);
+      color: white;
+    }
+
+    .health-score-good {
+      background: linear-gradient(135deg, #3B82F6, #2563EB);
+      color: white;
+    }
+
+    .health-score-moderate {
+      background: linear-gradient(135deg, #F59E0B, #D97706);
+      color: white;
+    }
+
+    .health-score-poor {
+      background: linear-gradient(135deg, #EF4444, #DC2626);
+      color: white;
+    }
+
+    .assessment-option.selected > div {
+      border-color: #D4AF37;
+      background: rgba(212, 175, 55, 0.05);
+      transform: scale(1.02);
+    }
+
+    /* Tab System Styles */
+    .tab-btn {
+      position: relative;
+      transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .tab-btn::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #D4AF37, #1B4F30);
+      transition: width 0.3s ease;
+    }
+
+    .tab-btn:hover::after {
+      width: 100%;
+    }
+
+    .tab-btn.active {
+      color: #D4AF37;
+    }
+
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Planting Guide Specific Styles */
+    .planting-section {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      border: 1px solid rgba(212, 175, 55, 0.1);
+      transition: all 0.3s ease;
+    }
+
+    .planting-section:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(212, 175, 55, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .planting-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 1rem;
+      flex-shrink: 0;
+    }
+
+    .planting-info h4 {
+      color: #1B4F30;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .dark .planting-info h4 {
+      color: #D4AF37;
+    }
+
+    .planting-info p {
+      color: #4B5563;
+      line-height: 1.6;
+    }
+
+    .dark .planting-info p {
+      color: #D1D5DB;
+    }
+
+    .planting-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    /* Enhanced Color Scheme */
+    .text-success { color: #10B981; }
+    .text-warning { color: #F59E0B; }
+    .text-info { color: #3B82F6; }
+    .text-error { color: #EF4444; }
+
+    .bg-success { background-color: #10B981; }
+    .bg-warning { background-color: #F59E0B; }
+    .bg-info { background-color: #3B82F6; }
+    .bg-error { background-color: #EF4444; }
+
+    /* Enhanced Navigation */
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      color: #6B7280;
+    }
+
+    .breadcrumb a {
+      transition: color 0.3s ease;
+    }
+
+    .breadcrumb a:hover {
+      color: #D4AF37;
+    }
+
+    /* Skeleton Loading */
+    .skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 8px;
+    }
+
+    .skeleton-text {
+      height: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .skeleton-image {
+      height: 200px;
+      border-radius: 20px 20px 0 0;
+    }
+
+    /* ===== MOBILE OPTIMIZATIONS ===== */
+/* Fix for mobile viewport height */
+.min-h-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Prevent zoom on iOS input focus */
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Better scrolling on iOS */
+body {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fix for mobile address bar */
+@media (max-width: 768px) {
+  .relative.h-screen.flex.items-center.justify-center {
+    min-height: 100dvh;
+    padding-top: 60px;
+  }
+}
+
+/* Enhanced Chat Styles */
+.chat-message {
+  clear: both;
+  margin-bottom: 1rem;
+}
+
+.user-message {
+  text-align: right;
+}
+
+.assistant-message {
+  text-align: left;
+}
+
+.loading-spinner-small {
+  border: 2px solid #f3f4f6;
+  border-top: 2px solid #1B4F30;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
+/* Smooth scrolling for chat */
+#chatMessages {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for chat */
+#chatMessages::-webkit-scrollbar {
+  width: 6px;
+}
+
+#chatMessages::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+#chatMessages::-webkit-scrollbar-thumb {
+  background: #d4af37;
+  border-radius: 3px;
+}
+
+#chatMessages::-webkit-scrollbar-thumb:hover {
+  background: #b38d27;
+}
+
+/* Better button feedback on mobile */
+@media (hover: none) and (pointer: coarse) {
+  .btn-magic:active {
+    transform: scale(0.95);
+  }
+  
+  .chip:active {
+    transform: scale(0.98);
+  }
+}
+
+/* Prevent text size adjustment */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Add to your existing CSS */
+.species-img {
+    height: 200px;
+    width: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.species-image:hover {
+    transform: scale(1.05);
+}
+
+/* Loading state for images */
+.species-img {
+    background: linear-gradient(135deg, #a8d8b9, #1B4F30);
+}
+
+/* Ensure cards look great */
+.card-magic {
+    transition: all 0.3s ease;
+}
+
+.card-magic:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+}
+
+
+    /* Enhanced mobile responsiveness for new navigation */
+    @media (max-width: 768px) {
+      .floating-orb {
+        top: 1rem;
+        left: 1rem;
+        width: 50px;
+        height: 50px;
+      }
+
+      .orb-menu {
+        top: 1rem;
+        left: 1rem;
+        right: 1rem;
+        padding: 70px 1rem 1rem 1rem;
+      }
+
+      .menu-item {
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+      }
+    }
+
+    /* Soil Health Assessment Styles */
+.api-status-loading { color: #f59e0b; }
+.api-status-connected { color: #10b981; }
+.api-status-disconnected { color: #ef4444; }
+
+.health-score-excellent { background: linear-gradient(135deg, #10b981, #34d399); }
+.health-score-good { background: linear-gradient(135deg, #84cc16, #a3e635); }
+.health-score-moderate { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
+.health-score-poor { background: linear-gradient(135deg, #ef4444, #f87171); }
+
+.assessment-option.selected { border-color: #d4af37 !important; background-color: rgba(212, 175, 55, 0.1); }
+
+.radar-container {
+  height: 300px;
+  margin-bottom: 2rem;
+}
+
+/* Add to your CSS */
+.radar-container {
+  height: 300px;
+  position: relative;
+  margin: 2rem 0;
+}
+
+#soilHealthRadar {
+  width: 100% !important;
+  height: 100% !important;
+}
+  </style>
+</head>
+<body class="bg-forest-50 text-forest-800 dark:bg-forest-900 dark:text-forest-100 transition-all duration-700">
+
+ <!-- Floating Orb Navigation -->
+<div class="floating-orb" id="navOrb">
+    🔮
+</div>
+
+<div class="orb-menu" id="navMenu">
+    <div class="menu-item active" data-page="recommendation">
+        <div class="menu-icon">🌳</div>
+        <span>Tree Recommendations</span>
+    </div>
+    <div class="menu-item" data-page="projects">
+        <div class="menu-icon">🗺️</div>
+        <span>Projects & Mapping</span>
+    </div>
+    <div class="menu-item" data-page="soil-health">
+        <div class="menu-icon">🌱</div>
+        <span>Land Health Check</span>
+    </div>
+</div>
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="fixed inset-0 bg-forest-900/90 backdrop-blur-md z-50 flex items-center justify-center hidden">
+    <div class="text-center text-white">
+      <div class="loading-spinner mx-auto mb-4"></div>
+      <p id="loadingMsg" class="text-xl">Loading species data...</p>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="fixed top-0 left-0 right-0 z-50 bg-white/20 dark:bg-forest-800/30 backdrop-blur-md border-b border-white/20 dark:border-forest-600/30 transition">
+    <div class="max-w-6xl mx-auto px-8 py-5 flex justify-between items-center">
+      <div class="logo text-2xl font-bold text-forest-800 dark:text-forest-100">🌳 ForestWise</div>
+      <div class="flex items-center space-x-4">
+        <!-- Favorites Button -->
+        <button id="favoritesBtn" class="relative p-2 text-forest-700 dark:text-forest-200 hover:text-gold-400 transition">
+          <i class="fas fa-heart text-xl"></i>
+          <span id="favoritesBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden"></span>
+        </button>
+        
+        <!-- Share Button -->
+        <button id="shareBtn" class="p-2 text-forest-700 dark:text-forest-200 hover:text-gold-400 transition" title="Share Results">
+          <i class="fas fa-share-alt text-xl"></i>
+        </button>
+        
+        <!-- Export PDF Button -->
+        <button id="exportPdfBtn" class="p-2 text-forest-700 dark:text-forest-200 hover:text-gold-400 transition" title="Export PDF">
+          <i class="fas fa-file-pdf text-xl"></i>
+        </button>
+        
+        <div class="hidden md:flex space-x-10 text-lg font-medium">
+          <a href="#tool" class="nav-item text-forest-700 dark:text-forest-200 hover:text-gold-400 transition">Home</a>
+          <a href="#about" class="nav-item text-forest-700 dark:text-forest-200 hover:text-gold-400 transition">About</a>
+          <a href="#contact" class="nav-item text-forest-700 dark:text-forest-200 hover:text-gold-400 transition">Contact</a>
+        </div>
+        <button id="darkModeToggle" class="border border-white/60 text-white px-3 py-2 rounded-lg text-sm hover:bg-white hover:text-forest-900 transition">
+          <i class="fas fa-moon"></i>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+ <!-- ===== PAGES ===== -->
+  <!-- Recommendation Page -->
+  <div class="page active" id="recommendation-page">
+  <!-- Hero Section -->
+  <section class="relative h-screen flex items-center justify-center text-center text-white overflow-hidden">
+    <video autoplay muted loop class="dynamic-bg">
+      <source src="https://assets.mixkit.co/videos/preview/mixkit-tree-branch-with-green-leaves-moving-in-wind-27610-large.mp4" type="video/mp4">
+    </video>
+    <div class="bg-overlay"></div>
+    <div class="particles" id="particlesContainer"></div>
+    
+    <!-- Hero Content -->
+    <div class="relative z-10 max-w-5xl px-6 fade-in w-full text-center">
+      <h1 class="text-5xl md:text-8xl font-bold leading-tight mb-6">
+        <span class="logo text-6xl">Forest</span><span class="text-gold-400">Wise</span>
+      </h1>
+      <p class="text-xl md:text-3xl mb-10 opacity-90 max-w-3xl mx-auto">
+        Find the best tree species for your location and needs,<br><span class="highlight">powered by AI & real-time environmental data</span>.
+      </p>
+      <button id="getStartedBtn" class="pulse bg-gradient-to-r from-forest-600 to-forest-700 hover:from-forest-700 hover:to-forest-800 text-white px-10 py-5 rounded-2xl text-xl font-semibold btn-glow transition transform hover:scale-105 btn-magic">
+        <i class="fas fa-seedling mr-3"></i> Get Started
+      </button>
+    </div>
+    
+    <div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce text-3xl">
+      <i class="fas fa-chevron-down text-white/70"></i>
+    </div>
+  </section>
+
+  <!-- Nature Slideshow Section -->
+  <section id="natureSlideshow" class="relative py-20 bg-forest-50 dark:bg-forest-900 overflow-hidden">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="text-center mb-16 scroll-reveal">
+        <h2 class="text-4xl md:text-5xl font-bold mb-6 text-forest-800 dark:text-forest-100">
+          🌍 The World's Forests
+        </h2>
+        <p class="text-xl text-forest-600 dark:text-forest-300 max-w-3xl mx-auto">
+          Discover the breathtaking diversity of forests across our planet
+        </p>
+      </div>
+
+      <!-- Slideshow Container -->
+      <div class="relative h-96 rounded-2xl overflow-hidden shadow-2xl scroll-reveal">
+        
+        <!-- Slide 1 - Dense Forest -->
+        <div class="absolute inset-0 slideshow-slide active">
+          <img src="https://images.unsplash.com/photo-1448375240586-882707db888b?ixlib=rb-4.0.1&auto=format&fit=crop&w=1200&q=80" 
+               alt="Dense Forest" 
+               class="w-full h-full object-cover">
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+            <div class="p-8 text-white w-full">
+              <h3 class="text-2xl font-bold mb-2">Dense Forests</h3>
+              <p class="text-lg opacity-90">"A single tree can absorb up to 48 pounds of carbon dioxide per year"</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide 2 - Snow Forest -->
+        <div class="absolute inset-0 slideshow-slide">
+          <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.1&auto=format&fit=crop&w=1200&q=80" 
+               alt="Snow Forest" 
+               class="w-full h-full object-cover">
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+            <div class="p-8 text-white w-full">
+              <h3 class="text-2xl font-bold mb-2">Snow Forests</h3>
+              <p class="text-lg opacity-90">"Forests are home to 80% of the world's terrestrial biodiversity"</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide 3 - Rainforest -->
+        <div class="absolute inset-0 slideshow-slide">
+          <img src="https://images.unsplash.com/photo-1476820865390-c52aeebb9891?ixlib=rb-4.0.1&auto=format&fit=crop&w=1200&q=80" 
+               alt="Rainforest" 
+               class="w-full h-full object-cover">
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+            <div class="p-8 text-white w-full">
+              <h3 class="text-2xl font-bold mb-2">Rainforests</h3>
+              <p class="text-lg opacity-90">"The Amazon produces 20% of the world's oxygen"</p>
+            </div>
+          </div>
+        </div>
+
+         <!-- Slide 4 - REDWOOD Forest -->
+        <div class="absolute inset-0 slideshow-slide">
+          <img src="https://images.unsplash.com/photo-1448375240586-882707db888b?ixlib=rb-4.0.1&auto=format&fit=crop&w=1200&q=80" 
+               alt="Redwood Forest" 
+               class="w-full h-full object-cover">
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+            <div class="p-8 text-white w-full">
+              <h3 class="text-2xl font-bold mb-2">Redwood Forests</h3>
+              <p class="text-lg opacity-90">"Redwood trees can live for over 2,000 years and grow taller than 350 feet"</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide 5 - Autumn Forest -->
+        <div class="absolute inset-0 slideshow-slide">
+          <img src="https://images.unsplash.com/photo-1502082553048-f009c37129b9?ixlib=rb-4.0.1&auto=format&fit=crop&w=1200&q=80" 
+               alt="Autumn Forest" 
+               class="w-full h-full object-cover">
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+            <div class="p-8 text-white w-full">
+              <h3 class="text-2xl font-bold mb-2">Autumn Forests</h3>
+              <p class="text-lg opacity-90">"One acre of forest absorbs 6 tons of CO₂ and produces 4 tons of oxygen annually"</p>
+            </div>
+          </div>
+        </div>
+            
+          <!-- Slide 6 - Coastal Forest -->
+      <div class="absolute inset-0 slideshow-slide">
+        <img src="https://images.unsplash.com/photo-1505142468610-359e7d316be0?ixlib=rb-4.0.1&auto=format&fit=crop&w=1200&q=80" 
+             alt="Coastal Forest" 
+             class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+          <div class="p-8 text-white w-full">
+            <h3 class="text-2xl font-bold mb-2">Coastal Forests</h3>
+            <p class="text-lg opacity-90">"Mangrove forests protect coastlines and support marine life"</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 7 - Forest Wildlife -->
+      <div class="absolute inset-0 slideshow-slide">
+        <img src="https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?ixlib=rb-4.0.1&auto=format&fit=crop&w=1200&q=80" 
+             alt="Forest Wildlife" 
+             class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+          <div class="p-8 text-white w-full">
+            <h3 class="text-2xl font-bold mb-2">Forest Wildlife</h3>
+            <p class="text-lg opacity-90">"Elephants create forest pathways used by hundreds of other species"</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 8 - Pine Forest -->
+      <div class="absolute inset-0 slideshow-slide">
+        <img src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.1&auto=format&fit=crop&w=1200&q=80" 
+             alt="Pine Forest" 
+             class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+          <div class="p-8 text-white w-full">
+            <h3 class="text-2xl font-bold mb-2">Pine Forests</h3>
+            <p class="text-lg opacity-90">"Pine forests can survive in temperatures as low as -60° Celsius"</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 9 - TROPICAL Forest (REPLACEMENT) -->
+      <div class="absolute inset-0 slideshow-slide">
+        <img src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?ixlib=rb-4.0.1&auto=format&fit=crop&w=1200&q=80" 
+             alt="Tropical Forest" 
+             class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+          <div class="p-8 text-white w-full">
+            <h3 class="text-2xl font-bold mb-2">Tropical Forests</h3>
+            <p class="text-lg opacity-90">"Tropical forests contain about half of all plant and animal species on Earth"</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 10 - RIVER Forest (REPLACEMENT) -->
+      <div class="absolute inset-0 slideshow-slide">
+        <img src="https://images.unsplash.com/photo-1473448912268-2022ce9509d8?ixlib=rb-4.0.1&auto=format&fit=crop&w=1200&q=80" 
+             alt="River Forest" 
+             class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+          <div class="p-8 text-white w-full">
+            <h3 class="text-2xl font-bold mb-2">River Forests</h3>
+            <p class="text-lg opacity-90">"Riparian forests along rivers help filter pollutants and prevent erosion"</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 11 - Forest Canopy -->
+      <div class="absolute inset-0 slideshow-slide">
+        <img src="https://images.unsplash.com/photo-1425913397330-cf8af2ff40a1?ixlib=rb-4.0.1&auto=format&fit=crop&w=1200&q=80" 
+             alt="Forest Canopy" 
+             class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+          <div class="p-8 text-white w-full">
+            <h3 class="text-2xl font-bold mb-2">Forest Canopies</h3>
+            <p class="text-lg opacity-90">"Forest canopies create their own ecosystems in the treetops"</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 12 - Forest Path -->
+      <div class="absolute inset-0 slideshow-slide">
+        <img src="https://images.unsplash.com/photo-1511497584788-876760111969?ixlib=rb-4.0.1&auto=format&fit=crop&w=1200&q=80" 
+             alt="Forest Path" 
+             class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+          <div class="p-8 text-white w-full">
+            <h3 class="text-2xl font-bold mb-2">Forest Pathways</h3>
+            <p class="text-lg opacity-90">"Forest trails have been used for centuries by animals and humans alike"</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 13 - Forest Fire Regrowth -->
+      <div class="absolute inset-0 slideshow-slide">
+        <img src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?ixlib=rb-4.0.1&auto=format&fit=crop&w=1200&q=80" 
+             alt="Forest Fire Regrowth" 
+             class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+          <div class="p-8 text-white w-full">
+            <h3 class="text-2xl font-bold mb-2">Forest Resilience</h3>
+            <p class="text-lg opacity-90">"Some tree species need forest fires to release their seeds and regenerate"</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 14 - MISTY Forest (REPLACEMENT) -->
+      <div class="absolute inset-0 slideshow-slide">
+        <img src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.1&auto=format&fit=crop&w=1200&q=80" 
+             alt="Misty Forest" 
+             class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+          <div class="p-8 text-white w-full">
+            <h3 class="text-2xl font-bold mb-2">Misty Forests</h3>
+            <p class="text-lg opacity-90">"Forest mists provide essential moisture for epiphytes and mosses"</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 15 - WINTER Forest (REPLACEMENT) -->
+      <div class="absolute inset-0 slideshow-slide">
+        <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.1&auto=format&fit=crop&w=1200&q=80" 
+             alt="Winter Forest" 
+             class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+          <div class="p-8 text-white w-full">
+            <h3 class="text-2xl font-bold mb-2">Winter Forests</h3>
+            <p class="text-lg opacity-90">"Evergreen forests continue photosynthesis even during winter months"</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 16 - SPRING Forest (NEW) -->
+      <div class="absolute inset-0 slideshow-slide">
+        <img src="https://images.unsplash.com/photo-1448375240586-882707db888b?ixlib=rb-4.0.1&auto=format&fit=crop&w=1200&q=80" 
+             alt="Spring Forest" 
+             class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+          <div class="p-8 text-white w-full">
+            <h3 class="text-2xl font-bold mb-2">Spring Forests</h3>
+            <p class="text-lg opacity-90">"Spring awakening brings new growth - trees produce leaves to capture maximum sunlight"</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 17 - OLD GROWTH Forest (NEW) -->
+      <div class="absolute inset-0 slideshow-slide">
+        <img src="https://images.unsplash.com/photo-1476820865390-c52aeebb9891?ixlib=rb-4.0.1&auto=format&fit=crop&w=1200&q=80" 
+             alt="Old Growth Forest" 
+             class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+          <div class="p-8 text-white w-full">
+            <h3 class="text-2xl font-bold mb-2">Old Growth Forests</h3>
+            <p class="text-lg opacity-90">"Ancient forests store 30-70% more carbon than younger planted forests"</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 18 - URBAN Forest (NEW) -->
+      <div class="absolute inset-0 slideshow-slide">
+        <img src="https://images.unsplash.com/photo-1502082553048-f009c37129b9?ixlib=rb-4.0.1&auto=format&fit=crop&w=1200&q=80" 
+             alt="Urban Forest" 
+             class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+          <div class="p-8 text-white w-full">
+            <h3 class="text-2xl font-bold mb-2">Urban Forests</h3>
+            <p class="text-lg opacity-90">"City trees reduce air pollution, lower temperatures, and improve mental health"</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 19 - MEDICINAL Forest (NEW) -->
+      <div class="absolute inset-0 slideshow-slide">
+        <img src="https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?ixlib=rb-4.0.1&auto=format&fit=crop&w=1200&q=80" 
+             alt="Medicinal Forest" 
+             class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+          <div class="p-8 text-white w-full">
+            <h3 class="text-2xl font-bold mb-2">Medicinal Forests</h3>
+            <p class="text-lg opacity-90">"25% of modern medicines are derived from rainforest plants"</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 20 - FOREST FUTURE (NEW) -->
+      <div class="absolute inset-0 slideshow-slide">
+        <img src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.1&auto=format&fit=crop&w=1200&q=80" 
+             alt="Forest Future" 
+             class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+          <div class="p-8 text-white w-full">
+            <h3 class="text-2xl font-bold mb-2">Forests of the Future</h3>
+            <p class="text-lg opacity-90">"Reforestation could capture 25% of global carbon emissions if done sustainably"</p>
+          </div>
+        </div>
+      </div>
+
+        
+        <!-- Navigation Arrows -->
+        <button class="slideshow-prev absolute left-4 top-1/2 transform -translate-y-1/2 z-20 bg-white/20 hover:bg-white/30 text-white w-12 h-12 rounded-full flex items-center justify-center transition-all">
+          ‹
+        </button>
+        <button class="slideshow-next absolute right-4 top-1/2 transform -translate-y-1/2 z-20 bg-white/20 hover:bg-white/30 text-white w-12 h-12 rounded-full flex items-center justify-center transition-all">
+          ›
+        </button>
+
+        <!-- Navigation Dots -->
+        <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 flex space-x-3 slideshow-dots">
+          <!-- Dots added by JavaScript -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Recommendation Tool -->
+  <section id="tool" class="py-32 px-6">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-16 scroll-reveal">
+        <h2 class="text-5xl font-bold mb-6">🌱 Find Your Ideal Tree</h2>
+        <p class="text-xl opacity-80 max-w-3xl mx-auto">
+          Answer a few questions. We'll match you with native species built to thrive.
+        </p>
+        
+        <!-- Location Detection Header -->
+        <div id="locationHeader" class="mt-6 hidden">
+          <div class="inline-flex items-center bg-green-50 dark:bg-green-900/30 px-4 py-2 rounded-full border border-green-200 dark:border-green-700">
+            <i class="fas fa-map-marker-alt text-green-500 mr-2"></i>
+            <span class="text-green-700 dark:text-green-300 font-medium">Location detected:</span>
+            <span id="currentLocation" class="text-green-600 dark:text-green-400 ml-1"></span>
+          </div>
+          <p class="text-sm text-forest-600 dark:text-forest-300 mt-2">Climate and soil data has been auto-filled based on your location</p>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-12">
+        <!-- Site Conditions -->
+        <div class="glass p-10 card-hover transition">
+          <div class="flex justify-between items-center mb-8">
+            <h3 class="text-3xl font-semibold flex items-center">
+              <i class="fas fa-map-marked-alt mr-4 text-gold-400"></i> Site Conditions
+            </h3>
+            <!-- Location Detection Button -->
+            <button id="detectLocationBtn" class="bg-gradient-to-r from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 text-white px-6 py-3 rounded-xl font-semibold transition transform hover:scale-105 flex items-center btn-magic">
+              <i class="fas fa-location-arrow mr-2"></i>
+              Detect My Location
+            </button>
+          </div>
+
+          <div class="space-y-8">
+            <div class="form-group">
+              <label class="form-label">Soil Type</label>
+              <select id="soilType" class="w-full p-4 rounded-xl border border-forest-200 dark:border-forest-600 bg-white/70 dark:bg-forest-800/60 focus:ring-2 focus:ring-gold-400 outline-none text-lg transition input-glow">
+                <option value="">-- Select Soil Type --</option>
+                <!-- Populated by JS -->
+              </select>
+              <p class="form-helper">Choose the predominant soil type in your planting area</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Soil pH Range</label>
+              <div class="flex items-center space-x-4">
+                <input type="range" min="4.0" max="8.5" step="0.1" value="5.5" id="pHMin" class="flex-1 range-track">
+                <input type="range" min="4.0" max="8.5" step="0.1" value="7.0" id="pHMax" class="flex-1 range-track">
+              </div>
+              <div class="flex justify-between mt-2 text-sm opacity-80">
+                <span id="pHMinLabel">5.5</span>
+                <span id="pHMaxLabel">7.0</span>
+              </div>
+              <p class="form-helper">Adjust the pH range suitable for your soil conditions</p>
+            </div>
+
+            <div id="rainfallField" class="form-group">
+              <div class="flex justify-between items-center mb-3">
+                <label class="form-label">Annual Rainfall (mm)</label>
+                <span id="rainfallStatus" class="text-xs text-gray-500 hidden"></span>
+              </div>
+              <input type="number" id="rainfall" placeholder="e.g., 1200" class="w-full p-4 rounded-xl border border-forest-200 dark:border-forest-600 bg-white/70 dark:bg-forest-800/60 text-lg focus:ring-2 focus:ring-gold-400 outline-none input-glow">
+              <p class="form-helper">Enter the average annual rainfall in your region</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-6">
+              <div id="tempMinField" class="form-group">
+                <div class="flex justify-between items-center mb-3">
+                  <label class="form-label">Min Temp (°C)</label>
+                  <span id="tempMinStatus" class="text-xs text-gray-500 hidden"></span>
+                </div>
+                <input type="number" id="tempMin" placeholder="20" class="w-full p-4 rounded-xl border border-forest-200 dark:border-forest-600 bg-white/70 dark:bg-forest-800/60 input-glow">
+              </div>
+              <div id="tempMaxField" class="form-group">
+                <div class="flex justify-between items-center mb-3">
+                  <label class="form-label">Max Temp (°C)</label>
+                  <span id="tempMaxStatus" class="text-xs text-gray-500 hidden"></span>
+                </div>
+                <input type="number" id="tempMax" placeholder="32" class="w-full p-4 rounded-xl border border-forest-200 dark:border-forest-600 bg-white/70 dark:bg-forest-800/60 input-glow">
+              </div>
+            </div>
+            <p class="form-helper text-center">Enter the typical temperature range in your area</p>
+
+            <div id="humidityField" class="form-group">
+              <div class="flex justify-between items-center mb-3">
+                <label class="form-label">Humidity</label>
+                <span id="humidityStatus" class="text-xs text-gray-500 hidden"></span>
+              </div>
+              <select id="humidity" class="w-full p-4 rounded-xl border border-forest-200 dark:border-forest-600 bg-white/70 dark:bg-forest-800/60 input-glow">
+                <option value="">-- Select Humidity --</option>
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+                <option value="Very High">Very High</option>
+              </select>
+              <p class="form-helper">Select the general humidity level in your region</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Sunlight</label>
+              <select id="sunlight" class="w-full p-4 rounded-xl border border-forest-200 dark:border-forest-600 bg-white/70 dark:bg-forest-800/60 input-glow">
+                <option value="">-- Select Sunlight --</option>
+                <option value="Full Sun">Full Sun</option>
+                <option value="Partial Shade">Partial Shade</option>
+              </select>
+              <p class="form-helper">Choose the typical sunlight exposure for your planting site</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Restoration Goals -->
+        <div class="glass p-10 card-hover transition">
+          <h3 class="text-3xl font-semibold mb-8 flex items-center">
+            <i class="fas fa-bullseye mr-4 text-gold-400"></i> Restoration Goals
+          </h3>
+          <div id="goalChips" class="flex flex-wrap gap-3 mb-10">
+            <span class="chip" data-goal="Biodiversity">Biodiversity</span>
+            <span class="chip" data-goal="Carbon">Carbon Sequestration</span>
+            <span class="chip" data-goal="Timber">Timber Production</span>
+            <span class="chip" data-goal="Erosion Control">Erosion Control</span>
+            <span class="chip" data-goal="Agroforestry">Agroforestry</span>
+            <span class="chip" data-goal="Medicinal">Medicinal Use</span>
+            <span class="chip" data-goal="Food">Food/Fruit</span>
+            <span class="chip" data-goal="Drought Resilience">Drought Resilience</span>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div class="grid grid-cols-2 gap-4">
+            <button id="recommendBtn" class="bg-gradient-to-r from-forest-600 via-gold-400 to-forest-600 hover:from-forest-700 hover:to-forest-700 text-white py-5 rounded-2xl text-xl font-bold btn-glow transition transform hover:scale-105 btn-magic">
+              <i class="fas fa-tree mr-3"></i> Recommend Trees 🌱
+            </button>
+            <button id="resetBtn" class="border-2 border-forest-300 dark:border-forest-600 text-forest-700 dark:text-forest-200 hover:bg-forest-50 dark:hover:bg-forest-800 py-5 rounded-2xl text-xl font-bold transition transform hover:scale-105 btn-magic">
+              <i class="fas fa-redo mr-3"></i> Reset Form
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Results Section -->
+  <section id="resultsSection" class="py-32 px-6">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-16 scroll-reveal">
+        <h2 class="text-5xl font-bold mb-6">🏆 Top Recommended Species</h2>
+        <p class="text-xl opacity-80">Perfectly matched to your environment and goals.</p>
+        <div class="mt-6 w-32 h-1 bg-gold-400 mx-auto progress-bar" id="progressBar"></div>
+      </div>
+      <div id="resultsContainer" class="grid md:grid-cols-3 gap-10">
+        <!-- Results injected by JS -->
+      </div>
+    </div>
+  </section>
+
+   <!-- About Section -->
+  <section id="about" class="py-32 px-6 bg-forest-100 dark:bg-forest-800/40 transition">
+    <div class="max-w-5xl mx-auto text-center scroll-reveal">
+      <h2 class="text-5xl font-bold mb-8">About ForestWise</h2>
+      <p class="text-xl leading-relaxed mb-8">
+        ForestWise helps you choose the right native tree species for your location using real environmental data and AI.
+      </p>
+      <p class="text-xl leading-relaxed mb-8">
+        We integrate <strong>global soil databases</strong>, <strong>weather APIs</strong>, and <strong>satellite data</strong> to provide scientifically accurate recommendations.
+      </p>
+      <p class="text-xl leading-relaxed mb-12">
+        All recommendations are based on real-time environmental data and rule-based matching of soil, climate, and restoration goals.
+      </p>
+    </div>
+  </section>
+
+  <!-- Contact Section -->
+  <section id="contact" class="py-32 px-6">
+    <div class="max-w-4xl mx-auto glass p-12 scroll-reveal">
+      <h2 class="text-4xl font-bold text-center mb-8">Contact Us</h2>
+      <form id="contactForm" class="space-y-6">
+        <div class="form-group">
+          <label class="form-label">Name</label>
+          <input type="text" name="name" required class="w-full p-4 rounded-xl border border-forest-200 dark:border-forest-600 bg-white/70 dark:bg-forest-800/60 input-glow">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" name="email" required class="w-full p-4 rounded-xl border border-forest-200 dark:border-forest-600 bg-white/70 dark:bg-forest-800/60 input-glow">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Message</label>
+          <textarea name="message" rows="5" required class="w-full p-4 rounded-xl border border-forest-200 dark:border-forest-600 bg-white/70 dark:bg-forest-800/60 input-glow"></textarea>
+        </div>
+        <button type="submit" class="w-full bg-forest-600 hover:bg-forest-700 text-white py-4 rounded-xl text-xl font-semibold btn-magic">
+          Send Message
+        </button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="py-16 text-center footer-text">
+    <p>Copyright © 2025 Peter Adegboye</p>
+    <p class="mt-2">Built with ❤️ in Nigeria</p>
+    <div class="mt-4 space-x-6">
+      <a href="#" class="hover:text-gold-400">Privacy Policy</a>
+      <a href="#" class="hover:text-gold-400">Terms of Use</a>
+    </div>
+  </footer>
+</div>
+
+<!-- Projects Page -->
+<div class="page" id="projects-page">
+  <div class="min-h-screen bg-forest-50 dark:bg-forest-900 pt-20">
+    <div class="max-w-7xl mx-auto px-6 py-12">
+      <div class="text-center mb-12">
+        <h1 class="text-5xl font-bold mb-4">🗺️ My Projects</h1>
+        <p class="text-xl opacity-80">Manage and track your reforestation projects across Nigeria</p>
+      </div>
+
+      <!-- ENHANCED: Mapping Section -->
+      <section id="mappingSection" class="py-20 bg-forest-50 dark:bg-forest-800/30">
+        <div class="max-w-6xl mx-auto px-6">
+          <div class="text-center mb-12">
+            <h2 class="text-4xl font-bold mb-4">🗺️ My Planting Projects</h2>
+            <p class="text-xl opacity-80">Map and track your reforestation journey across Nigeria with intelligent analytics</p>
+          </div>
+
+          <!-- Map Controls -->
+          <div class="map-controls mb-6">
+            <div class="flex flex-wrap gap-4 items-center justify-between">
+              <div class="flex items-center space-x-4">
+                <span class="font-semibold text-forest-700 dark:text-forest-200">Project Types:</span>
+                <div class="flex flex-wrap gap-2">
+                  <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" class="project-filter" value="agroforestry" checked>
+                    <span class="w-3 h-3 bg-green-500 rounded"></span>
+                    <span>Agroforestry</span>
+                  </label>
+                  <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" class="project-filter" value="restoration" checked>
+                    <span class="w-3 h-3 bg-lime-500 rounded"></span>
+                    <span>Restoration</span>
+                  </label>
+                  <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" class="project-filter" value="carbon" checked>
+                    <span class="w-3 h-3 bg-red-500 rounded"></span>
+                    <span>Carbon</span>
+                  </label>
+                  <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" class="project-filter" value="watershed" checked>
+                    <span class="w-3 h-3 bg-blue-500 rounded"></span>
+                    <span>Watershed</span>
+                  </label>
+                </div>
+              </div>
+              <button id="toggleSatellite" class="bg-forest-600 hover:bg-forest-700 text-white px-4 py-2 rounded-lg transition">
+                <i class="fas fa-satellite mr-2"></i>Satellite View
+              </button>
+            </div>
+          </div>
+
+          <!-- The Map Container -->
+          <div class="glass p-6 mb-8">
+            <div id="projectMap" class="h-96 rounded-xl bg-forest-200 dark:bg-forest-700"></div>
+            <p class="text-sm text-forest-600 dark:text-forest-300 mt-3 text-center">
+              💡 Click anywhere on the map to add your planting project location
+            </p>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-8">
+            <!-- Add New Project Form -->
+            <div class="glass p-6">
+              <h4 class="text-xl font-bold mb-4 flex items-center">
+                <i class="fas fa-plus-circle mr-3 text-gold-400"></i>Add New Project
+              </h4>
+              <div class="space-y-4">
+                <div>
+                  <label class="block font-medium mb-2">Project Name</label>
+                  <input type="text" id="projectName" placeholder="e.g., School Garden, Backyard Forest"
+                    class="w-full p-4 rounded-xl border border-forest-200 dark:border-forest-600 bg-white/70 dark:bg-forest-800/60 input-glow">
+                </div>
+
+                <!-- Project Type Selection -->
+                <div>
+                  <label class="block font-medium mb-2">Project Type</label>
+                  <div class="project-type-selector">
+                    <div class="project-type-option" data-type="agroforestry">
+                      <div class="text-2xl mb-1">🌳</div>
+                      <div class="text-sm font-medium">Agroforestry</div>
+                    </div>
+                    <div class="project-type-option" data-type="restoration">
+                      <div class="text-2xl mb-1">🌱</div>
+                      <div class="text-sm font-medium">Restoration</div>
+                    </div>
+                    <div class="project-type-option" data-type="carbon">
+                      <div class="text-2xl mb-1">🔥</div>
+                      <div class="text-sm font-medium">Carbon</div>
+                    </div>
+                    <div class="project-type-option" data-type="watershed">
+                      <div class="text-2xl mb-1">💧</div>
+                      <div class="text-sm font-medium">Watershed</div>
+                    </div>
+                    <div class="project-type-option" data-type="urban">
+                      <div class="text-2xl mb-1">🏡</div>
+                      <div class="text-sm font-medium">Urban</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block font-medium mb-2">Description</label>
+                  <textarea id="projectDescription" placeholder="What are you planting? Goals?"
+                    class="w-full p-4 rounded-xl border border-forest-200 dark:border-forest-600 bg-white/70 dark:bg-forest-800/60 input-glow h-24"></textarea>
+                </div>
+                <div>
+                  <label class="block font-medium mb-2">Selected Location</label>
+                  <div id="selectedLocation" class="p-3 bg-forest-100 dark:bg-forest-700 rounded-xl text-sm text-forest-600 dark:text-forest-300">
+                    Click on the map to select location...
+                  </div>
+                </div>
+                <button id="addProjectBtn" class="w-full bg-gradient-to-r from-forest-600 to-forest-700 hover:from-forest-700 hover:to-forest-800 text-white py-4 rounded-xl font-semibold transition transform hover:scale-105 btn-magic">
+                  <i class="fas fa-map-marker-alt mr-2"></i>Create Project on Map
+                </button>
+              </div>
+            </div>
+
+            <!-- My Projects List -->
+            <div class="glass p-6">
+              <div class="flex justify-between items-center mb-4">
+                <h4 class="text-xl font-bold flex items-center">
+                  <i class="fas fa-list mr-3 text-gold-400"></i>My Projects
+                </h4>
+                <button id="clearAllProjects" class="text-red-500 hover:text-red-700 text-sm font-medium transition">
+                  <i class="fas fa-trash mr-1"></i>Clear All
+                </button>
+              </div>
+              <div id="projectsList" class="space-y-4 max-h-96 overflow-y-auto">
+                <!-- Projects will appear here dynamically -->
+                <div class="text-center py-8 text-forest-600 dark:text-forest-300">
+                  <i class="fas fa-map-marked-alt text-4xl mb-3 opacity-50"></i>
+                  <p>No projects yet</p>
+                  <p class="text-sm">Create your first project to see it here!</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- Soil Health Page -->
+<div class="page" id="soil-health-page">
+  <div class="min-h-screen bg-forest-50 dark:bg-forest-900 pt-20">
+    <div class="max-w-7xl mx-auto px-6 py-12">
+      <div class="text-center mb-12">
+        <h1 class="text-5xl font-bold mb-4">🌱 Land Health Check</h1>
+        <p class="text-xl opacity-80">Assess your soil health with real environmental data</p>
+      </div>
+
+      <!-- ENHANCED: Soil Health Assessment Section -->
+      <section id="soilHealthSection" class="py-20 bg-forest-50 dark:bg-forest-800/30">
+        <div class="max-w-4xl mx-auto px-6">
+          <div class="text-center mb-12">
+            <h2 class="text-4xl font-bold mb-4">🌱 Land Health Check</h2>
+            <p class="text-xl opacity-80">Assess your soil health with real environmental data and get personalized restoration advice</p>
+          </div>
+
+          <!-- API Status -->
+          <div id="apiStatus" class="glass p-4 mb-6 hidden">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-4">
+                <span class="font-semibold">Data Sources:</span>
+                <span id="soilApiStatus" class="api-status-loading"><i class="fas fa-circle mr-1"></i>Soil Data</span>
+                <span id="weatherApiStatus" class="api-status-loading"><i class="fas fa-circle mr-1"></i>Weather</span>
+                <span id="climateApiStatus" class="api-status-loading"><i class="fas fa-circle mr-1"></i>Climate</span>
+              </div>
+              <button id="refreshApiData" class="text-gold-500 hover:text-gold-600 transition">
+                <i class="fas fa-sync-alt mr-1"></i>Refresh
+              </button>
+            </div>
+          </div>
+
+          <!-- Assessment Wizard -->
+          <div class="glass p-8">
+            <div id="soilWizard">
+              <!-- Step 1: Location & Auto-Detection -->
+              <div class="wizard-step active" data-step="1">
+                <h3 class="text-2xl font-bold mb-6 flex items-center">
+                  <span class="w-8 h-8 bg-gold-400 text-white rounded-full flex items-center justify-center mr-3">1</span>
+                  Location & Environmental Data
+                </h3>
+                
+                <div class="mb-6">
+                  <button id="detectSoilData" class="bg-gradient-to-r from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 text-white px-6 py-3 rounded-xl font-semibold transition transform hover:scale-105 flex items-center btn-magic">
+                    <i class="fas fa-satellite mr-2"></i>Detect Soil & Climate Data
+                  </button>
+                  <p class="text-sm text-forest-600 dark:text-forest-300 mt-2">
+                    Uses your location to fetch real soil properties and climate data from global databases
+                  </p>
+                </div>
+
+                <!-- Auto-detected Data Display -->
+                <div id="autoDetectedData" class="hidden space-y-4">
+                  <h4 class="text-lg font-semibold flex items-center">
+                    <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                    Detected Environmental Data
+                  </h4>
+                  
+                  <div class="grid md:grid-cols-2 gap-4">
+                    <div class="soil-data-card bg-white dark:bg-forest-800 rounded-xl p-4">
+                      <h5 class="font-semibold mb-2 flex items-center">
+                        <i class="fas fa-mountain text-amber-500 mr-2"></i>Soil Properties
+                      </h5>
+                      <div id="soilProperties" class="text-sm space-y-1">
+                        <!-- Soil data will be populated here -->
+                      </div>
+                    </div>
+                    
+                    <div class="soil-data-card bg-white dark:bg-forest-800 rounded-xl p-4">
+                      <h5 class="font-semibold mb-2 flex items-center">
+                        <i class="fas fa-cloud-sun text-blue-500 mr-2"></i>Climate Data
+                      </h5>
+                      <div id="climateData" class="text-sm space-y-1">
+                        <!-- Climate data will be populated here -->
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl p-4">
+                    <h5 class="font-semibold mb-2 flex items-center">
+                      <i class="fas fa-question-circle text-yellow-500 mr-2"></i>Does this match your observations?
+                    </h5>
+                    <div class="flex space-x-4 mt-2">
+                      <button class="confirm-data bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition" data-confirm="true">
+                        <i class="fas fa-check mr-1"></i>Yes, Accurate
+                      </button>
+                      <button class="confirm-data bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition" data-confirm="false">
+                        <i class="fas fa-times mr-1"></i>No, Different
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex justify-between mt-8">
+                  <div></div> <!-- Spacer -->
+                  <button class="next-step bg-forest-600 hover:bg-forest-700 text-white px-8 py-3 rounded-xl font-semibold transition transform hover:scale-105">
+                    Next <i class="fas fa-arrow-right ml-2"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Step 2: Detailed Assessment -->
+              <div class="wizard-step hidden" data-step="2">
+                <h3 class="text-2xl font-bold mb-6 flex items-center">
+                  <span class="w-8 h-8 bg-gold-400 text-white rounded-full flex items-center justify-center mr-3">2</span>
+                  Detailed Land Assessment
+                </h3>
+
+                <!-- Radar Chart -->
+                <div class="radar-container">
+                  <canvas id="soilHealthRadar"></canvas>
+                </div>
+
+                <div class="space-y-6">
+                  <div class="assessment-question">
+                    <h4 class="text-lg font-semibold mb-4">What does your soil look and feel like?</h4>
+                    <div class="grid md:grid-cols-3 gap-4">
+                      <label class="assessment-option">
+                        <input type="radio" name="soilTexture" value="healthy" class="hidden">
+                        <div class="border-2 border-forest-200 rounded-xl p-4 text-center cursor-pointer transition-all hover:border-gold-400">
+                          <div class="w-16 h-16 bg-amber-200 rounded-full mx-auto mb-3 flex items-center justify-center">
+                            <i class="fas fa-seedling text-amber-600 text-xl"></i>
+                          </div>
+                          <h5 class="font-semibold">Dark & Crumbly</h5>
+                          <p class="text-sm text-forest-600 mt-1">Rich, fertile soil</p>
+                        </div>
+                      </label>
+                      <label class="assessment-option">
+                        <input type="radio" name="soilTexture" value="moderate" class="hidden">
+                        <div class="border-2 border-forest-200 rounded-xl p-4 text-center cursor-pointer transition-all hover:border-gold-400">
+                          <div class="w-16 h-16 bg-amber-100 rounded-full mx-auto mb-3 flex items-center justify-center">
+                            <i class="fas fa-leaf text-amber-500 text-xl"></i>
+                          </div>
+                          <h5 class="font-semibold">Sandy or Clay</h5>
+                          <p class="text-sm text-forest-600 mt-1">Moderate quality</p>
+                        </div>
+                      </label>
+                      <label class="assessment-option">
+                        <input type="radio" name="soilTexture" value="poor" class="hidden">
+                        <div class="border-2 border-forest-200 rounded-xl p-4 text-center cursor-pointer transition-all hover:border-gold-400">
+                          <div class="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-3 flex items-center justify-center">
+                            <i class="fas fa-mountain text-gray-500 text-xl"></i>
+                          </div>
+                          <h5 class="font-semibold">Hard & Pale</h5>
+                          <p class="text-sm text-forest-600 mt-1">Poor, degraded soil</p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="assessment-question">
+                    <h4 class="text-lg font-semibold mb-4">Are there signs of erosion?</h4>
+                    <div class="grid md:grid-cols-2 gap-4">
+                      <label class="assessment-option">
+                        <input type="radio" name="erosion" value="none" class="hidden">
+                        <div class="border-2 border-forest-200 rounded-xl p-4 text-center cursor-pointer transition-all hover:border-gold-400">
+                          <i class="fas fa-check-circle text-green-500 text-2xl mb-2"></i>
+                          <h5 class="font-semibold">No Erosion</h5>
+                          <p class="text-sm text-forest-600 mt-1">Good ground cover</p>
+                        </div>
+                      </label>
+                      <label class="assessment-option">
+                        <input type="radio" name="erosion" value="moderate" class="hidden">
+                        <div class="border-2 border-forest-200 rounded-xl p-4 text-center cursor-pointer transition-all hover:border-gold-400">
+                          <i class="fas fa-exclamation-triangle text-yellow-500 text-2xl mb-2"></i>
+                          <h5 class="font-semibold">Some Erosion</h5>
+                          <p class="text-sm text-forest-600 mt-1">Small gullies or runoff</p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex justify-between mt-8">
+                  <button class="prev-step border border-forest-300 text-forest-700 dark:text-forest-200 hover:bg-forest-50 dark:hover:bg-forest-800 px-8 py-3 rounded-xl font-semibold transition">
+                    <i class="fas fa-arrow-left mr-2"></i> Back
+                  </button>
+                  <button class="next-step bg-forest-600 hover:bg-forest-700 text-white px-8 py-3 rounded-xl font-semibold transition transform hover:scale-105">
+                    Next <i class="fas fa-arrow-right ml-2"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Add these to your step 2 HTML after the erosion section -->
+<div class="assessment-question">
+  <h4 class="text-lg font-semibold mb-4">How much vegetation cover is there?</h4>
+  <div class="grid md:grid-cols-3 gap-4">
+    <label class="assessment-option">
+      <input type="radio" name="vegetation" value="high" class="hidden">
+      <div class="border-2 border-forest-200 rounded-xl p-4 text-center cursor-pointer transition-all hover:border-gold-400">
+        <i class="fas fa-tree text-green-500 text-2xl mb-2"></i>
+        <h5 class="font-semibold">High Cover</h5>
+        <p class="text-sm text-forest-600 mt-1">Dense vegetation</p>
+      </div>
+    </label>
+    <label class="assessment-option">
+      <input type="radio" name="vegetation" value="medium" class="hidden">
+      <div class="border-2 border-forest-200 rounded-xl p-4 text-center cursor-pointer transition-all hover:border-gold-400">
+        <i class="fas fa-leaf text-green-400 text-2xl mb-2"></i>
+        <h5 class="font-semibold">Medium Cover</h5>
+        <p class="text-sm text-forest-600 mt-1">Some vegetation</p>
+      </div>
+    </label>
+    <label class="assessment-option">
+      <input type="radio" name="vegetation" value="low" class="hidden">
+      <div class="border-2 border-forest-200 rounded-xl p-4 text-center cursor-pointer transition-all hover:border-gold-400">
+        <i class="fas fa-mountain text-gray-500 text-2xl mb-2"></i>
+        <h5 class="font-semibold">Low Cover</h5>
+        <p class="text-sm text-forest-600 mt-1">Bare ground</p>
+      </div>
+    </label>
+  </div>
+</div>
+
+<div class="assessment-question">
+  <h4 class="text-lg font-semibold mb-4">How is the land currently used?</h4>
+  <div class="grid md:grid-cols-2 gap-4">
+    <label class="assessment-option">
+      <input type="radio" name="landUse" value="conservation" class="hidden">
+      <div class="border-2 border-forest-200 rounded-xl p-4 text-center cursor-pointer transition-all hover:border-gold-400">
+        <i class="fas fa-seedling text-green-500 text-2xl mb-2"></i>
+        <h5 class="font-semibold">Conservation</h5>
+        <p class="text-sm text-forest-600 mt-1">Protected area</p>
+      </div>
+    </label>
+    <label class="assessment-option">
+      <input type="radio" name="landUse" value="agriculture" class="hidden">
+      <div class="border-2 border-forest-200 rounded-xl p-4 text-center cursor-pointer transition-all hover:border-gold-400">
+        <i class="fas fa-tractor text-amber-500 text-2xl mb-2"></i>
+        <h5 class="font-semibold">Agriculture</h5>
+        <p class="text-sm text-forest-600 mt-1">Farming use</p>
+      </div>
+    </label>
+    <label class="assessment-option">
+      <input type="radio" name="landUse" value="grazing" class="hidden">
+      <div class="border-2 border-forest-200 rounded-xl p-4 text-center cursor-pointer transition-all hover:border-gold-400">
+        <i class="fas fa-paw text-amber-400 text-2xl mb-2"></i>
+        <h5 class="font-semibold">Grazing</h5>
+        <p class="text-sm text-forest-600 mt-1">Livestock use</p>
+      </div>
+    </label>
+    <label class="assessment-option">
+      <input type="radio" name="landUse" value="degraded" class="hidden">
+      <div class="border-2 border-forest-200 rounded-xl p-4 text-center cursor-pointer transition-all hover:border-gold-400">
+        <i class="fas fa-skull-crossbones text-red-500 text-2xl mb-2"></i>
+        <h5 class="font-semibold">Degraded</h5>
+        <p class="text-sm text-forest-600 mt-1">Abandoned/eroded</p>
+      </div>
+    </label>
+  </div>
+</div>
+
+              <!-- Step 3: Results -->
+              <div class="wizard-step hidden" data-step="3">
+                <h3 class="text-2xl font-bold mb-6 flex items-center">
+                  <span class="w-8 h-8 bg-gold-400 text-white rounded-full flex items-center justify-center mr-3">3</span>
+                  Your Land Health Results
+                </h3>
+                <div id="soilResults" class="space-y-6">
+                  <!-- Results will be generated here -->
+                </div>
+                <div class="flex justify-between mt-8">
+                  <button class="prev-step border border-forest-300 text-forest-700 dark:text-forest-200 hover:bg-forest-50 dark:hover:bg-forest-800 px-8 py-3 rounded-xl font-semibold transition">
+                    <i class="fas fa-arrow-left mr-2"></i> Back
+                  </button>
+                  <button id="restartAssessment" class="bg-gold-500 hover:bg-gold-600 text-white px-8 py-3 rounded-xl font-semibold transition transform hover:scale-105">
+                    <i class="fas fa-redo mr-2"></i> Start Over
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+  <!-- Wikipedia + AI Modal -->
+  <div id="wikiModal" class="modal modal-enhanced">
+    <div class="modal-content glass dark:bg-forest-800 max-w-4xl">
+      <div class="bg-white dark:bg-forest-900 p-8 max-h-96 overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+          <h3 id="wikiSpeciesName" class="text-3xl font-bold text-forest-800 dark:text-forest-100">Species Info</h3>
+          <button id="closeWikiModal" class="text-gray-500 hover:text-red-500 text-3xl">&times;</button>
+        </div>
+        
+        <!-- Tab Navigation -->
+        <div class="flex space-x-4 mb-6 border-b border-forest-200 dark:border-forest-600">
+          <button class="tab-btn active py-3 px-6 border-b-2 border-gold-400 text-gold-400 font-semibold transition-all" data-tab="wikipedia">
+            <i class="fas fa-book-open mr-2"></i>Wikipedia
+          </button>
+          <button class="tab-btn py-3 px-6 border-b-2 border-transparent text-forest-600 dark:text-forest-300 hover:text-gold-400 font-semibold transition-all" data-tab="planting-guide">
+            <i class="fas fa-seedling mr-2"></i>Planting Guide
+          </button>
+        </div>
+
+        <!-- Wikipedia Tab Content -->
+        <div id="wikipedia-tab" class="tab-content active">
+          <p id="wikiContent" class="text-lg leading-relaxed text-gray-700 dark:text-gray-300 mb-4">Fetching information...</p>
+          <a id="wikiLink" href="#" target="_blank" class="text-gold-500 text-lg hover:text-gold-600 transition-colors inline-flex items-center">
+            Read full article <i class="fas fa-arrow-right ml-2"></i>
+          </a>
+          
+          <!-- AI Question Section -->
+          <div class="mt-8 pt-6 border-t border-forest-200 dark:border-forest-600">
+            <h4 class="font-semibold mb-4 text-forest-800 dark:text-forest-100 flex items-center">
+              <i class="fas fa-robot mr-2 text-gold-400"></i>Ask AI Assistant:
+            </h4>
+            <input type="text" id="userQuestion" placeholder="e.g., What are its medicinal uses?" 
+                   class="w-full p-4 border border-forest-200 dark:border-forest-600 rounded-xl bg-white/70 dark:bg-forest-800/60 focus:ring-2 focus:ring-gold-400 outline-none transition-all input-glow">
+            <button id="askAI" class="bg-gradient-to-r from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 text-white px-6 py-3 rounded-xl font-semibold mt-3 transition transform hover:scale-105 btn-glow">
+              <i class="fas fa-paper-plane mr-2"></i>Ask AI
+            </button>
+            <div id="aiResponse" class="ai-response mt-4 hidden">
+              <p class="ai-response-content text-gray-700 dark:text-gray-300"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Planting Guide Tab Content -->
+        <div id="planting-guide-tab" class="tab-content hidden">
+          <div id="plantingGuideContent" class="space-y-6">
+            <!-- Planting guide will be loaded here dynamically -->
+            <div class="text-center py-12">
+              <div class="loading-spinner mx-auto mb-4"></div>
+              <p class="text-gray-600 dark:text-gray-300">Loading comprehensive planting guide...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Favorites Modal -->
+  <div id="favoritesModal" class="modal modal-enhanced">
+    <div class="modal-content glass dark:bg-forest-800 max-w-2xl">
+      <div class="bg-white dark:bg-forest-900 p-8 max-h-96 overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-3xl font-bold text-forest-800 dark:text-forest-100">
+            <i class="fas fa-heart text-red-400 mr-3"></i>My Favorite Species
+          </h3>
+          <button id="closeFavoritesModal" class="text-gray-500 hover:text-red-500 text-3xl">&times;</button>
+        </div>
+        <div id="favoritesContent">
+          <!-- Favorites will be loaded here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Enhanced AI Chat Widget -->
+<div class="qa-widget">
+  <button id="chatToggle" class="pulse bg-gradient-to-r from-gold-400 to-gold-500 text-white px-5 py-4 rounded-full shadow-lg flex items-center btn-magic">
+    <i class="fas fa-robot mr-2"></i> AI Assistant
+  </button>
+  
+  <div id="chatBox" class="bg-white dark:bg-forest-800 rounded-xl shadow-2xl mt-2 w-96 max-h-96 overflow-hidden hidden">
+    <!-- Chat Header -->
+    <div class="bg-gradient-to-r from-forest-600 to-forest-700 p-4 text-white">
+      <div class="flex justify-between items-center">
+        <h3 class="font-bold text-lg flex items-center">
+          <i class="fas fa-robot mr-2"></i> ForestWise AI
+        </h3>
+        <div class="flex space-x-2">
+          <button id="clearChat" class="text-white/80 hover:text-white transition" title="Clear Chat">
+            <i class="fas fa-trash"></i>
+          </button>
+          <button id="closeChat" class="text-white/80 hover:text-white transition" title="Close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+      <p class="text-xs opacity-80 mt-1">Expert forestry assistant with image analysis</p>
+    </div>
+
+    <!-- Chat Messages -->
+    <div id="chatMessages" class="p-4 max-h-64 overflow-y-auto space-y-3">
+      <div class="chat-message assistant-message">
+        <div class="bg-forest-100 dark:bg-forest-700 rounded-xl p-3 max-w-xs">
+          <p class="text-sm">Hello! I'm ForestWise AI. I can help you with tree identification, planting advice, soil health, and ecological restoration. You can even upload images for me to analyze!</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Image Preview -->
+    <div id="imagePreview" class="px-4 pb-2 hidden">
+      <div class="flex items-center justify-between bg-forest-50 dark:bg-forest-700 rounded-lg p-2">
+        <div class="flex items-center space-x-2">
+          <i class="fas fa-image text-gold-400"></i>
+          <span class="text-sm font-medium">Image attached</span>
+        </div>
+        <button id="removeImage" class="text-red-400 hover:text-red-600">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Chat Input -->
+    <div class="p-4 border-t border-forest-200 dark:border-forest-600">
+      <div class="flex space-x-2 mb-2">
+        <input type="file" id="imageUpload" accept="image/*" class="hidden">
+        <button id="uploadButton" class="flex items-center px-3 py-2 bg-forest-500 hover:bg-forest-600 text-white rounded-lg transition text-sm">
+          <i class="fas fa-camera mr-1"></i> Image
+        </button>
+        <button id="contextButton" class="flex items-center px-3 py-2 bg-gold-500 hover:bg-gold-600 text-white rounded-lg transition text-sm">
+          <i class="fas fa-crosshairs mr-1"></i> Context
+        </button>
+      </div>
+      
+      <div class="flex space-x-2">
+        <input type="text" id="chatInput" placeholder="Ask about trees, soil, planting..." 
+               class="flex-1 p-3 border border-forest-200 dark:border-forest-600 rounded-xl bg-white dark:bg-forest-700 focus:ring-2 focus:ring-gold-400 outline-none input-glow">
+        <button id="sendChat" class="bg-gradient-to-r from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 text-white px-4 rounded-xl transition transform hover:scale-105 btn-magic">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <!-- Load JavaScript -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
