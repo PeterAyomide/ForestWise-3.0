@@ -176,19 +176,42 @@
     }
 
     /* === PAGE TRANSITIONS === */
-   .page {
-  display: none;        /* Hidden by default */
+   /* FULLY CORRECTED PAGE ANIMATION CSS */
+.page {
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100%;
-  min-height: 100vh;    /* Takes full height */
-  padding-top: 80px;    /* Pushes content down so it doesn't hide behind nav */
+  height: 100%;
+  
+  /* FIX: Push content down so it doesn't hide behind the navbar */
+  padding-top: 80px; 
+  
+  /* Animation Base State */
   opacity: 0;
-  transition: opacity 0.4s ease;
+  transform: scale(0.95);
+  pointer-events: none;
+  transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  
+  /* FIX: Allow scrolling INSIDE the fixed page */
+  overflow-y: auto; 
+  
+  z-index: 10;
 }
 
-    .page.active {
-  display: block;
+.page.active {
   opacity: 1;
+  transform: scale(1);
   pointer-events: all;
+  z-index: 20; /* Bring active page to front */
+}
+
+/* handles the smooth exit animation */
+.page.exit {
+  opacity: 0;
+  transform: scale(1.05);
+  z-index: 15;
+}
 
     /* === LOADING STATES === */
     .page-loading {
@@ -1550,25 +1573,23 @@ html {
   </div>
 
   <!-- Navigation -->
-  <nav class="fixed top-0 left-0 right-0 z-50 bg-white/20 dark:bg-forest-800/30 backdrop-blur-md border-b border-white/20 dark:border-forest-600/30 transition">
+ <nav class="fixed top-0 left-0 right-0 z-50 bg-white/20 dark:bg-forest-800/30 backdrop-blur-md border-b border-white/20 dark:border-forest-600/30 transition">
     <div class="max-w-6xl mx-auto px-8 py-5 flex justify-between items-center">
+      
       <a href="#" class="logo flex items-center gap-3 group">
-  <img src="logo.png" alt="ForestWise" class="h-10 w-auto group-hover:scale-105 transition-transform">
-  <span class="text-2xl font-bold text-forest-800 dark:text-forest-100">ForestWise</span>
-</a>
+         <img src="logo.png" alt="ForestWise" class="h-12 w-auto group-hover:scale-105 transition-transform">
+         <span class="text-2xl font-bold text-forest-800 dark:text-forest-100">ForestWise</span>
+      </a>
       <div class="flex items-center space-x-4">
-        <!-- Favorites Button -->
         <button id="favoritesBtn" class="relative p-2 text-forest-700 dark:text-forest-200 hover:text-gold-400 transition">
           <i class="fas fa-heart text-xl"></i>
           <span id="favoritesBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden"></span>
         </button>
         
-        <!-- Share Button -->
         <button id="shareBtn" class="p-2 text-forest-700 dark:text-forest-200 hover:text-gold-400 transition" title="Share Results">
           <i class="fas fa-share-alt text-xl"></i>
         </button>
         
-        <!-- Export PDF Button -->
         <button id="exportPdfBtn" class="p-2 text-forest-700 dark:text-forest-200 hover:text-gold-400 transition" title="Export PDF">
           <i class="fas fa-file-pdf text-xl"></i>
         </button>
