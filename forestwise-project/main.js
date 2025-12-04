@@ -2905,16 +2905,19 @@ function recommend(speciesList, criteria) {
 
 // ===== ENHANCED IMAGE FUNCTION =====
 function getSpeciesImageUrl(species) {
-  // 1. Get the name
-  const name = species['Species Name'] || species['Common Name'] || 'tree';
+  // Get the name (e.g., "African Mahogany")
+  const name = species['Common Name'] || species['Species Name'] || 'Tree';
   
-  // 2. Clean it for the URL (remove spaces)
-  const keyword = encodeURIComponent(name.split(' ')[0]); // Uses just the first word (Genus) for better matches
+  // Create a strict prompt that forces a tree appearance
+  // We use "botanical illustration style" or "national geographic photo" to ensure quality
+  const prompt = `botanical photography of ${name} tree growing tall in a forest, realistic, bright sunlight, 4k, high detailed`;
   
-  // 3. Use LoremFlickr (Real stock photos from Flickr)
-  // Format: https://loremflickr.com/{width}/{height}/{keywords}
-  // We use the Genus name + 'tree' + 'nature' to find a relevant photo
-  return `https://loremflickr.com/500/300/${keyword},tree,nature/all?lock=${Math.floor(Math.random() * 1000)}`;
+  // Encode it so the URL doesn't break
+  const encodedPrompt = encodeURIComponent(prompt);
+  
+  // Use Pollinations AI (It generates a new image based on the text description)
+  // We add 'nologo=true' to keep it clean
+  return `https://image.pollinations.ai/prompt/${encodedPrompt}?nologo=true`;
 }
 
 // ===== RESULTS RENDERING =====
@@ -3899,4 +3902,5 @@ if (document.readyState === 'loading') {
   initApp();
 
 }
+
 
