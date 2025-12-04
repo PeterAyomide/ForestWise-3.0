@@ -3508,7 +3508,7 @@ class ForestWiseAI {
       const currentSpeciesData = speciesData || [];
       // --- CHANGE END ---
 
-      const response = await fetch('/.netlify/functions/forestwise-ai', {
+     const response = await fetch('/forestwise-ai', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -3851,6 +3851,7 @@ if (document.readyState === 'loading') {
   initApp();
 
 }
+
 
 
 
