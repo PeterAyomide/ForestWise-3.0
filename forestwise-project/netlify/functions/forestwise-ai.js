@@ -33,7 +33,7 @@ export async function onRequestPost(context) {
     }
 
     // Configure Gemini API
-    const MODEL_NAME = "gemini-1.5-flash"; // Updated to valid model name (2.5 doesn't exist yet publicly, 1.5 is the current fast one)
+    const MODEL_NAME = "gemini-2.5-flash"; // Updated to valid model name (2.5 doesn't exist yet publicly, 1.5 is the current fast one)
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEY}`;
 
     // --- YOUR CUSTOM SYSTEM PROMPT LOGIC ---
@@ -130,3 +130,4 @@ export async function onRequestPost(context) {
     });
   }
 }
+
