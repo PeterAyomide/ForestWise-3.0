@@ -176,41 +176,45 @@
     }
 
     /* === PAGE TRANSITIONS === */
-   /* FULLY CORRECTED PAGE ANIMATION CSS */
+/* 1. Reset the container to allow body scrolling */
 .page {
-  position: fixed;
+  position: absolute;    /* Stacks pages on top of each other */
   top: 0;
   left: 0;
   width: 100%;
-  height: 100%;
+  min-height: 100vh;     /* Ensures it fills the screen */
+  padding-top: 0;        /* Let the Hero section handle its own spacing */
   
-  /* FIX: Push content down so it doesn't hide behind the navbar */
-  padding-top: 80px; 
-  
-  /* Animation Base State */
+  /* Animation Start State */
   opacity: 0;
-  transform: scale(0.95);
+  transform: scale(0.96);
   pointer-events: none;
-  transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   
-  /* FIX: Allow scrolling INSIDE the fixed page */
-  overflow-y: auto; 
-  
-  z-index: 10;
+  /* IMPORTANT: Remove overflow-y here so the BODY scrolls, not the div */
+  overflow: hidden; 
+  height: 0; /* Hides inactive pages so they don't stretch the body */
 }
 
+/* 2. The Active Page stretches the body */
 .page.active {
+  position: relative;    /* Allows the body to scroll naturally */
   opacity: 1;
   transform: scale(1);
   pointer-events: all;
-  z-index: 20; /* Bring active page to front */
+  height: auto;          /* Let content expand naturally */
+  overflow: visible;
+  z-index: 1;
 }
 
-/* handles the smooth exit animation */
+/* 3. The Exiting Page floats on top during animation */
 .page.exit {
+  position: absolute;    /* Takes it out of flow */
   opacity: 0;
   transform: scale(1.05);
-  z-index: 15;
+  z-index: 10;
+  height: 100vh;         /* Prevent it from collapsing during exit */
+  overflow: hidden;
 }
 
     /* === LOADING STATES === */
@@ -2267,282 +2271,214 @@ html {
   </div>
 </div>
 
-<!-- Soil Health Page -->
-<div class="page" id="soil-health-page">
-  <div class="min-h-screen bg-forest-50 dark:bg-forest-900 pt-20">
-    <div class="max-w-7xl mx-auto px-6 py-12">
-      <div class="text-center mb-12">
-        <h1 class="text-5xl font-bold mb-4">🌱 Land Health Check</h1>
-        <p class="text-xl opacity-80">Assess your soil health with real environmental data and get personalized restoration advice</p>
-      </div>
+ <!-- === PAGE 3: SOIL HEALTH ASSESSMENT === -->
+  <div class="page active" id="soil-health-page">
+    <div class="min-h-screen pt-28 pb-20 px-6">
+      <div class="max-w-5xl mx-auto">
+        
+        <!-- Header -->
+        <div class="text-center mb-12">
+          <span class="inline-block py-1 px-3 rounded-full bg-gold-400/10 text-gold-500 text-sm font-bold mb-4 border border-gold-400/20">
+            <i class="fas fa-stethoscope mr-2"></i>AI DIAGNOSTIC TOOL
+          </span>
+          <h1 class="text-4xl md:text-5xl font-bold mb-6 logo-font">Land Health Check</h1>
+          <p class="text-xl opacity-80 max-w-2xl mx-auto">
+            Diagnose the health of your planting site using satellite data and visual observation.
+          </p>
+        </div>
 
-      <!-- ENHANCED: Soil Health Assessment Section -->
-      <section id="soilHealthSection" class="py-20 bg-forest-50 dark:bg-forest-800/30">
-        <div class="max-w-4xl mx-auto px-6">
-          <div class="text-center mb-12">
-            <h2 class="text-4xl font-bold mb-4">🌱 Land Health Check</h2>
-            <p class="text-xl opacity-80"></p>
+        <!-- Main Assessment Container -->
+        <div class="glass p-8 md:p-12 shadow-2xl relative overflow-hidden">
+          
+          <!-- Progress Bar -->
+          <div class="absolute top-0 left-0 w-full h-2 bg-gray-100 dark:bg-forest-800">
+            <div id="wizardProgress" class="h-full bg-gold-500 transition-all duration-500" style="width: 33%"></div>
           </div>
 
-          <!-- API Status -->
-          <div id="apiStatus" class="glass p-4 mb-6 hidden">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center space-x-4">
-                <span class="font-semibold">Data Sources:</span>
-                <span id="soilApiStatus" class="api-status-loading"><i class="fas fa-circle mr-1"></i>Soil Data</span>
-                <span id="weatherApiStatus" class="api-status-loading"><i class="fas fa-circle mr-1"></i>Weather</span>
-                <span id="climateApiStatus" class="api-status-loading"><i class="fas fa-circle mr-1"></i>Climate</span>
-              </div>
-              <button id="refreshApiData" class="text-gold-500 hover:text-gold-600 transition">
-                <i class="fas fa-sync-alt mr-1"></i>Refresh
-              </button>
-            </div>
-          </div>
-
-          <!-- Assessment Wizard -->
-          <div class="glass p-8">
-            <div id="soilWizard">
-              <!-- Step 1: Location & Auto-Detection -->
-              <div class="wizard-step active" data-step="1">
-                <h3 class="text-2xl font-bold mb-6 flex items-center">
-                  <span class="w-8 h-8 bg-gold-400 text-white rounded-full flex items-center justify-center mr-3">1</span>
-                  Location & Environmental Data
-                </h3>
-                
-                <div class="mb-6">
-                  <button id="detectSoilData" class="bg-gradient-to-r from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 text-white px-6 py-3 rounded-xl font-semibold transition transform hover:scale-105 flex items-center btn-magic">
-                    <i class="fas fa-satellite mr-2"></i>Detect Soil & Climate Data
+          <!-- WIZARD STEPS -->
+          <form id="soilHealthForm" onsubmit="return false;">
+            
+            <!-- STEP 1: AUTO DETECT + VISUAL -->
+            <div class="wizard-step active" data-step="1">
+              
+              <!-- === NEW AUTO DETECT SECTION === -->
+              <div class="mb-10 bg-forest-50 dark:bg-forest-800/50 p-6 rounded-2xl border border-forest-100 dark:border-forest-700">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                  <div>
+                    <h3 class="text-xl font-bold flex items-center">
+                      <i class="fas fa-satellite text-gold-500 mr-2"></i> Auto-Detect Data
+                    </h3>
+                    <p class="text-sm opacity-70">Use GPS to fetch soil & climate data for your area.</p>
+                  </div>
+                  <button type="button" id="detectSoilData" class="bg-gradient-to-r from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 text-white px-6 py-2 rounded-xl font-bold btn-magic text-sm whitespace-nowrap">
+                    <i class="fas fa-location-arrow mr-2"></i> Detect Location
                   </button>
-                  <p class="text-sm text-forest-600 dark:text-forest-300 mt-2">
-                    Uses your location to fetch real soil properties and climate data from global databases
+                </div>
+
+                <!-- Hidden Results Container -->
+                <div id="autoDetectedData" class="hidden mt-6 pt-6 border-t border-forest-200 dark:border-forest-600 animate-fade-in">
+                  <div class="grid md:grid-cols-2 gap-4">
+                    <div class="location-data-box p-4 rounded-lg bg-white dark:bg-forest-900">
+                      <h5 class="text-xs uppercase font-bold text-gold-500 mb-1">Detected Soil</h5>
+                      <div id="soilProperties" class="text-sm font-medium">Loading...</div>
+                    </div>
+                    <div class="location-data-box p-4 rounded-lg bg-white dark:bg-forest-900">
+                      <h5 class="text-xs uppercase font-bold text-gold-500 mb-1">Local Climate</h5>
+                      <div id="climateData" class="text-sm font-medium">Loading...</div>
+                    </div>
+                  </div>
+                  <p class="text-xs text-center mt-3 text-green-600 dark:text-green-400">
+                    <i class="fas fa-check-circle mr-1"></i> Data automatically applied to assessment.
                   </p>
                 </div>
+              </div>
+              <!-- === END AUTO DETECT === -->
 
-                <!-- Auto-detected Data Display -->
-                <div id="autoDetectedData" class="hidden space-y-4">
-                  <h4 class="text-lg font-semibold flex items-center">
-                    <i class="fas fa-check-circle text-green-500 mr-2"></i>
-                    Detected Environmental Data
-                  </h4>
-                  
-                  <div class="grid md:grid-cols-2 gap-4">
-                    <div class="soil-data-card bg-white dark:bg-forest-800 rounded-xl p-4">
-                      <h5 class="font-semibold mb-2 flex items-center">
-                        <i class="fas fa-mountain text-amber-500 mr-2"></i>Soil Properties
-                      </h5>
-                      <div id="soilProperties" class="text-sm space-y-1">
-                        <!-- Soil data will be populated here -->
-                      </div>
-                    </div>
-                    
-                    <div class="soil-data-card bg-white dark:bg-forest-800 rounded-xl p-4">
-                      <h5 class="font-semibold mb-2 flex items-center">
-                        <i class="fas fa-cloud-sun text-blue-500 mr-2"></i>Climate Data
-                      </h5>
-                      <div id="climateData" class="text-sm space-y-1">
-                        <!-- Climate data will be populated here -->
-                      </div>
-                    </div>
-                  </div>
+              <h3 class="text-2xl font-bold mb-8 flex items-center">
+                <span class="w-8 h-8 rounded-full bg-forest-800 text-white text-sm flex items-center justify-center mr-3">1</span>
+                Visual Soil Assessment
+              </h3>
 
-                  <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl p-4">
-                    <h5 class="font-semibold mb-2 flex items-center">
-                      <i class="fas fa-question-circle text-yellow-500 mr-2"></i>Does this match your observations?
-                    </h5>
-                    <div class="flex space-x-4 mt-2">
-                      <button class="confirm-data bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition" data-confirm="true">
-                        <i class="fas fa-check mr-1"></i>Yes, Accurate
-                      </button>
-                      <button class="confirm-data bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition" data-confirm="false">
-                        <i class="fas fa-times mr-1"></i>No, Different
-                      </button>
-                    </div>
+              <div class="space-y-8">
+                <!-- Question 1: Soil Texture -->
+                <div>
+                  <label class="block text-lg font-semibold mb-4">How does the soil feel and look?</label>
+                  <div class="grid md:grid-cols-3 gap-4">
+                    <label class="assessment-option group">
+                      <input type="radio" name="soilTexture" value="good" class="hidden" required>
+                      <div class="option-card border-2 border-transparent bg-white dark:bg-forest-800 p-6 rounded-xl text-center h-full transition-all group-hover:border-forest-200">
+                        <div class="text-4xl mb-3">🪱</div>
+                        <h4 class="font-bold mb-2">Rich & Crumbly</h4>
+                        <p class="text-sm opacity-70">Dark color, holds shape, visible organic matter.</p>
+                      </div>
+                    </label>
+                    <label class="assessment-option group">
+                      <input type="radio" name="soilTexture" value="average" class="hidden">
+                      <div class="option-card border-2 border-transparent bg-white dark:bg-forest-800 p-6 rounded-xl text-center h-full transition-all group-hover:border-forest-200">
+                        <div class="text-4xl mb-3">🏖️</div>
+                        <h4 class="font-bold mb-2">Sandy or Loamy</h4>
+                        <p class="text-sm opacity-70">Gritty texture, drains fast, light brown.</p>
+                      </div>
+                    </label>
+                    <label class="assessment-option group">
+                      <input type="radio" name="soilTexture" value="poor" class="hidden">
+                      <div class="option-card border-2 border-transparent bg-white dark:bg-forest-800 p-6 rounded-xl text-center h-full transition-all group-hover:border-forest-200">
+                        <div class="text-4xl mb-3">🧱</div>
+                        <h4 class="font-bold mb-2">Hard & Compact</h4>
+                        <p class="text-sm opacity-70">Pale, cracked surface, hard to dig.</p>
+                      </div>
+                    </label>
                   </div>
                 </div>
 
-                <div class="flex justify-between mt-8">
-                  <div></div> <!-- Spacer -->
-                  <button class="next-step bg-forest-600 hover:bg-forest-700 text-white px-8 py-3 rounded-xl font-semibold transition transform hover:scale-105">
-                    Next <i class="fas fa-arrow-right ml-2"></i>
-                  </button>
+                <!-- Question 2: Vegetation -->
+                <div>
+                  <label class="block text-lg font-semibold mb-4">Vegetation Cover</label>
+                  <div class="grid md:grid-cols-3 gap-4">
+                    <label class="assessment-option group">
+                      <input type="radio" name="vegetation" value="good" class="hidden" required>
+                      <div class="option-card border-2 border-transparent bg-white dark:bg-forest-800 p-6 rounded-xl text-center h-full transition-all group-hover:border-forest-200">
+                        <div class="text-4xl mb-3">🌿</div>
+                        <h4 class="font-bold mb-2">Dense Cover</h4>
+                      </div>
+                    </label>
+                    <label class="assessment-option group">
+                      <input type="radio" name="vegetation" value="average" class="hidden">
+                      <div class="option-card border-2 border-transparent bg-white dark:bg-forest-800 p-6 rounded-xl text-center h-full transition-all group-hover:border-forest-200">
+                        <div class="text-4xl mb-3">🌾</div>
+                        <h4 class="font-bold mb-2">Patchy Growth</h4>
+                      </div>
+                    </label>
+                    <label class="assessment-option group">
+                      <input type="radio" name="vegetation" value="poor" class="hidden">
+                      <div class="option-card border-2 border-transparent bg-white dark:bg-forest-800 p-6 rounded-xl text-center h-full transition-all group-hover:border-forest-200">
+                        <div class="text-4xl mb-3">🏜️</div>
+                        <h4 class="font-bold mb-2">Mostly Bare</h4>
+                      </div>
+                    </label>
+                  </div>
                 </div>
               </div>
 
-              <!-- Step 2: Detailed Assessment -->
-              <div class="wizard-step hidden" data-step="2">
-                <h3 class="text-2xl font-bold mb-6 flex items-center">
-                  <span class="w-8 h-8 bg-gold-400 text-white rounded-full flex items-center justify-center mr-3">2</span>
-                  Detailed Land Assessment
-                </h3>
-
-                <!-- Radar Chart -->
-                <div class="radar-container">
-                  <canvas id="soilHealthRadar"></canvas>
-                </div>
-
-                <div class="space-y-6">
-                  <div class="assessment-question">
-                    <h4 class="text-lg font-semibold mb-4">What does your soil look and feel like?</h4>
-                    <div class="grid md:grid-cols-3 gap-4">
-                      <label class="assessment-option">
-                        <input type="radio" name="soilTexture" value="healthy" class="hidden">
-                        <div class="border-2 border-forest-200 rounded-xl p-4 text-center cursor-pointer transition-all hover:border-gold-400">
-                          <div class="w-16 h-16 bg-amber-200 rounded-full mx-auto mb-3 flex items-center justify-center">
-                            <i class="fas fa-seedling text-amber-600 text-xl"></i>
-                          </div>
-                          <h5 class="font-semibold">Dark & Crumbly</h5>
-                          <p class="text-sm text-forest-600 mt-1">Rich, fertile soil</p>
-                        </div>
-                      </label>
-                      <label class="assessment-option">
-                        <input type="radio" name="soilTexture" value="moderate" class="hidden">
-                        <div class="border-2 border-forest-200 rounded-xl p-4 text-center cursor-pointer transition-all hover:border-gold-400">
-                          <div class="w-16 h-16 bg-amber-100 rounded-full mx-auto mb-3 flex items-center justify-center">
-                            <i class="fas fa-leaf text-amber-500 text-xl"></i>
-                          </div>
-                          <h5 class="font-semibold">Sandy or Clay</h5>
-                          <p class="text-sm text-forest-600 mt-1">Moderate quality</p>
-                        </div>
-                      </label>
-                      <label class="assessment-option">
-                        <input type="radio" name="soilTexture" value="poor" class="hidden">
-                        <div class="border-2 border-forest-200 rounded-xl p-4 text-center cursor-pointer transition-all hover:border-gold-400">
-                          <div class="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-3 flex items-center justify-center">
-                            <i class="fas fa-mountain text-gray-500 text-xl"></i>
-                          </div>
-                          <h5 class="font-semibold">Hard & Pale</h5>
-                          <p class="text-sm text-forest-600 mt-1">Poor, degraded soil</p>
-                        </div>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div class="assessment-question">
-                    <h4 class="text-lg font-semibold mb-4">Are there signs of erosion?</h4>
-                    <div class="grid md:grid-cols-2 gap-4">
-                      <label class="assessment-option">
-                        <input type="radio" name="erosion" value="none" class="hidden">
-                        <div class="border-2 border-forest-200 rounded-xl p-4 text-center cursor-pointer transition-all hover:border-gold-400">
-                          <i class="fas fa-check-circle text-green-500 text-2xl mb-2"></i>
-                          <h5 class="font-semibold">No Erosion</h5>
-                          <p class="text-sm text-forest-600 mt-1">Good ground cover</p>
-                        </div>
-                      </label>
-                      <label class="assessment-option">
-                        <input type="radio" name="erosion" value="moderate" class="hidden">
-                        <div class="border-2 border-forest-200 rounded-xl p-4 text-center cursor-pointer transition-all hover:border-gold-400">
-                          <i class="fas fa-exclamation-triangle text-yellow-500 text-2xl mb-2"></i>
-                          <h5 class="font-semibold">Some Erosion</h5>
-                          <p class="text-sm text-forest-600 mt-1">Small gullies or runoff</p>
-                        </div>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-                <div class="flex justify-between mt-8">
-                  <button class="prev-step border border-forest-300 text-forest-700 dark:text-forest-200 hover:bg-forest-50 dark:hover:bg-forest-800 px-8 py-3 rounded-xl font-semibold transition">
-                    <i class="fas fa-arrow-left mr-2"></i> Back
-                  </button>
-                  <button class="next-step bg-forest-600 hover:bg-forest-700 text-white px-8 py-3 rounded-xl font-semibold transition transform hover:scale-105">
-                    Next <i class="fas fa-arrow-right ml-2"></i>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Add these to your step 2 HTML after the erosion section -->
-<div class="assessment-question">
-  <h4 class="text-lg font-semibold mb-4">How much vegetation cover is there?</h4>
-  <div class="grid md:grid-cols-3 gap-4">
-    <label class="assessment-option">
-      <input type="radio" name="vegetation" value="high" class="hidden">
-      <div class="border-2 border-forest-200 rounded-xl p-4 text-center cursor-pointer transition-all hover:border-gold-400">
-        <i class="fas fa-tree text-green-500 text-2xl mb-2"></i>
-        <h5 class="font-semibold">High Cover</h5>
-        <p class="text-sm text-forest-600 mt-1">Dense vegetation</p>
-      </div>
-    </label>
-    <label class="assessment-option">
-      <input type="radio" name="vegetation" value="medium" class="hidden">
-      <div class="border-2 border-forest-200 rounded-xl p-4 text-center cursor-pointer transition-all hover:border-gold-400">
-        <i class="fas fa-leaf text-green-400 text-2xl mb-2"></i>
-        <h5 class="font-semibold">Medium Cover</h5>
-        <p class="text-sm text-forest-600 mt-1">Some vegetation</p>
-      </div>
-    </label>
-    <label class="assessment-option">
-      <input type="radio" name="vegetation" value="low" class="hidden">
-      <div class="border-2 border-forest-200 rounded-xl p-4 text-center cursor-pointer transition-all hover:border-gold-400">
-        <i class="fas fa-mountain text-gray-500 text-2xl mb-2"></i>
-        <h5 class="font-semibold">Low Cover</h5>
-        <p class="text-sm text-forest-600 mt-1">Bare ground</p>
-      </div>
-    </label>
-  </div>
-</div>
-
-<div class="assessment-question">
-  <h4 class="text-lg font-semibold mb-4">How is the land currently used?</h4>
-  <div class="grid md:grid-cols-2 gap-4">
-    <label class="assessment-option">
-      <input type="radio" name="landUse" value="conservation" class="hidden">
-      <div class="border-2 border-forest-200 rounded-xl p-4 text-center cursor-pointer transition-all hover:border-gold-400">
-        <i class="fas fa-seedling text-green-500 text-2xl mb-2"></i>
-        <h5 class="font-semibold">Conservation</h5>
-        <p class="text-sm text-forest-600 mt-1">Protected area</p>
-      </div>
-    </label>
-    <label class="assessment-option">
-      <input type="radio" name="landUse" value="agriculture" class="hidden">
-      <div class="border-2 border-forest-200 rounded-xl p-4 text-center cursor-pointer transition-all hover:border-gold-400">
-        <i class="fas fa-tractor text-amber-500 text-2xl mb-2"></i>
-        <h5 class="font-semibold">Agriculture</h5>
-        <p class="text-sm text-forest-600 mt-1">Farming use</p>
-      </div>
-    </label>
-    <label class="assessment-option">
-      <input type="radio" name="landUse" value="grazing" class="hidden">
-      <div class="border-2 border-forest-200 rounded-xl p-4 text-center cursor-pointer transition-all hover:border-gold-400">
-        <i class="fas fa-paw text-amber-400 text-2xl mb-2"></i>
-        <h5 class="font-semibold">Grazing</h5>
-        <p class="text-sm text-forest-600 mt-1">Livestock use</p>
-      </div>
-    </label>
-    <label class="assessment-option">
-      <input type="radio" name="landUse" value="degraded" class="hidden">
-      <div class="border-2 border-forest-200 rounded-xl p-4 text-center cursor-pointer transition-all hover:border-gold-400">
-        <i class="fas fa-skull-crossbones text-red-500 text-2xl mb-2"></i>
-        <h5 class="font-semibold">Degraded</h5>
-        <p class="text-sm text-forest-600 mt-1">Abandoned/eroded</p>
-      </div>
-    </label>
-  </div>
-</div>
-
-              <!-- Step 3: Results -->
-              <div class="wizard-step hidden" data-step="3">
-                <h3 class="text-2xl font-bold mb-6 flex items-center">
-                  <span class="w-8 h-8 bg-gold-400 text-white rounded-full flex items-center justify-center mr-3">3</span>
-                  Your Land Health Results
-                </h3>
-                <div id="soilResults" class="space-y-6">
-                  <!-- Results will be generated here -->
-                </div>
-                <div class="flex justify-between mt-8">
-                  <button class="prev-step border border-forest-300 text-forest-700 dark:text-forest-200 hover:bg-forest-50 dark:hover:bg-forest-800 px-8 py-3 rounded-xl font-semibold transition">
-                    <i class="fas fa-arrow-left mr-2"></i> Back
-                  </button>
-                  <button id="restartAssessment" class="bg-gold-500 hover:bg-gold-600 text-white px-8 py-3 rounded-xl font-semibold transition transform hover:scale-105">
-                    <i class="fas fa-redo mr-2"></i> Start Over
-                  </button>
-                </div>
+              <!-- Nav -->
+              <div class="flex justify-end mt-10">
+                <button type="button" onclick="nextWizardStep(2)" class="bg-forest-600 hover:bg-forest-700 text-white px-8 py-3 rounded-xl font-bold btn-magic flex items-center">
+                  Next Step <i class="fas fa-arrow-right ml-2"></i>
+                </button>
               </div>
             </div>
-          </div>
+
+            <!-- STEP 2: EROSION & WATER -->
+            <div class="wizard-step" data-step="2">
+              <h3 class="text-2xl font-bold mb-8 flex items-center">
+                <span class="w-8 h-8 rounded-full bg-forest-800 text-white text-sm flex items-center justify-center mr-3">2</span>
+                Water & Erosion
+              </h3>
+
+              <div class="space-y-8">
+                <!-- Question 3: Erosion -->
+                <div>
+                  <label class="block text-lg font-semibold mb-4">Erosion Signs</label>
+                  <div class="grid md:grid-cols-2 gap-4">
+                    <label class="assessment-option group">
+                      <input type="radio" name="erosion" value="none" class="hidden" required>
+                      <div class="option-card border-2 border-transparent bg-white dark:bg-forest-800 p-6 rounded-xl flex items-center gap-4 transition-all group-hover:border-forest-200">
+                        <div class="text-3xl">✅</div>
+                        <div>
+                          <h4 class="font-bold">No Visible Erosion</h4>
+                          <p class="text-sm opacity-70">Soil stays in place.</p>
+                        </div>
+                      </div>
+                    </label>
+                    <label class="assessment-option group">
+                      <input type="radio" name="erosion" value="severe" class="hidden">
+                      <div class="option-card border-2 border-transparent bg-white dark:bg-forest-800 p-6 rounded-xl flex items-center gap-4 transition-all group-hover:border-forest-200">
+                        <div class="text-3xl">⚠️</div>
+                        <div>
+                          <h4 class="font-bold">Active Erosion</h4>
+                          <p class="text-sm opacity-70">Gullies or muddy runoff.</p>
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Question 4: History -->
+                <div>
+                  <label class="block text-lg font-semibold mb-4">Land History</label>
+                  <select id="landHistory" class="w-full p-4 rounded-xl border border-forest-200 dark:border-forest-600 bg-white dark:bg-forest-800 focus:ring-2 focus:ring-gold-400 outline-none">
+                    <option value="fallow">Left Fallow (Resting)</option>
+                    <option value="farmed">Actively Farmed</option>
+                    <option value="burned">Recently Burned</option>
+                    <option value="construction">Construction Site</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="flex justify-between mt-10">
+                <button type="button" onclick="prevWizardStep(1)" class="text-forest-600 hover:text-forest-800 font-bold px-6">Back</button>
+                <button type="button" onclick="calculateResults()" class="bg-gold-500 hover:bg-gold-600 text-white px-8 py-3 rounded-xl font-bold btn-magic flex items-center">
+                  Analyze Land Health <i class="fas fa-chart-pie ml-2"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- STEP 3: RESULTS -->
+            <div class="wizard-step" data-step="3">
+              <div id="resultsContent" class="text-center py-8">
+                <div class="loading-spinner mx-auto"></div>
+              </div>
+              <div class="flex justify-center mt-8 gap-4">
+                <button type="button" onclick="restartWizard()" class="border border-forest-300 text-forest-600 px-6 py-2 rounded-lg hover:bg-white transition">Start Over</button>
+                <button type="button" onclick="showPage('recommendation')" class="bg-forest-600 text-white px-6 py-2 rounded-lg hover:bg-forest-700 transition">Find Trees</button>
+              </div>
+            </div>
+
+          </form>
         </div>
-      </section>
+      </div>
     </div>
   </div>
-</div>
 
   <!-- Wikipedia + AI Modal -->
   <div id="wikiModal" class="modal modal-enhanced">
@@ -2693,4 +2629,5 @@ html {
   <script src="main.js"></script>
 </body>
 </html>
+
 
