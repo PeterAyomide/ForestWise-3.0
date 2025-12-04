@@ -35,7 +35,7 @@ exports.handler = async function (event) {
     }
 
     // 3. Configure Gemini API
-    const MODEL_NAME = "gemini-1.5-flash";
+    const MODEL_NAME = "gemini-2.5-flash";
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEY}`;
 
     // 4. Build the Brain (System Prompt)
@@ -124,4 +124,5 @@ exports.handler = async function (event) {
       body: JSON.stringify({ error: error.message }),
     };
   }
+
 };
