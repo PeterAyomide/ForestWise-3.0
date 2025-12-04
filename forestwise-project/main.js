@@ -2905,18 +2905,16 @@ function recommend(speciesList, criteria) {
 
 // ===== ENHANCED IMAGE FUNCTION =====
 function getSpeciesImageUrl(species) {
-  // Use the Scientific Name because it gives more accurate visual results than common names
-  const query = species['Species Name'] || species['Common Name'] || 'Rainforest tree';
+  // 1. Get the name
+  const name = species['Species Name'] || species['Common Name'] || 'tree';
   
-  // Create a specific prompt to ensure high-quality, realistic nature photography
-  // We add 'cinematic', '4k', and 'realistic' to avoid cartoonish looks
-  const prompt = `cinematic nature photography of ${query} tree in african forest, realistic, 8k resolution, sunlight filtering through leaves, highly detailed`;
+  // 2. Clean it for the URL (remove spaces)
+  const keyword = encodeURIComponent(name.split(' ')[0]); // Uses just the first word (Genus) for better matches
   
-  // Encode the string to make it URL-safe
-  const encodedPrompt = encodeURIComponent(prompt);
-  
-  // Return the dynamic URL
-  return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=500&height=300&nologo=true`;
+  // 3. Use LoremFlickr (Real stock photos from Flickr)
+  // Format: https://loremflickr.com/{width}/{height}/{keywords}
+  // We use the Genus name + 'tree' + 'nature' to find a relevant photo
+  return `https://loremflickr.com/500/300/${keyword},tree,nature/all?lock=${Math.floor(Math.random() * 1000)}`;
 }
 
 // ===== RESULTS RENDERING =====
@@ -3901,3 +3899,4 @@ if (document.readyState === 'loading') {
   initApp();
 
 }
+
