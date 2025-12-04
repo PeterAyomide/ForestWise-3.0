@@ -2905,22 +2905,18 @@ function recommend(speciesList, criteria) {
 
 // ===== ENHANCED IMAGE FUNCTION =====
 function getSpeciesImageUrl(species) {
-  const commonName = species['Common Name'] || '';
-  const speciesName = species['Species Name'] || '';
+  // Use the Scientific Name because it gives more accurate visual results than common names
+  const query = species['Species Name'] || species['Common Name'] || 'Rainforest tree';
   
-  // Try different search terms to get better images
-  const searchTerms = [
-    commonName.replace(' Tree', '').replace(' tree', ''),
-    speciesName.split(' ')[0], // Genus name
-    commonName,
-    'tropical tree',
-    'forest tree'
-  ];
+  // Create a specific prompt to ensure high-quality, realistic nature photography
+  // We add 'cinematic', '4k', and 'realistic' to avoid cartoonish looks
+  const prompt = `cinematic nature photography of ${query} tree in african forest, realistic, 8k resolution, sunlight filtering through leaves, highly detailed`;
   
-  // Use the first search term that might work
-  const searchTerm = searchTerms.find(term => term && term.length > 2) || 'tree';
+  // Encode the string to make it URL-safe
+  const encodedPrompt = encodeURIComponent(prompt);
   
-  return `https://source.unsplash.com/500x300/?${encodeURIComponent(searchTerm + ' tree')},nature,forest`;
+  // Return the dynamic URL
+  return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=500&height=300&nologo=true`;
 }
 
 // ===== RESULTS RENDERING =====
@@ -3903,4 +3899,5 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initApp);
 } else {
   initApp();
+
 }
