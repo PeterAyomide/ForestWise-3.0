@@ -604,6 +604,38 @@ function goToNextStep() {
   nextStep.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+// Add this MISSING function to main.js
+function goToPrevStep() {
+  const currentStep = document.querySelector('.wizard-step.active');
+  if (!currentStep) return;
+
+  const currentStepNumber = parseInt(currentStep.dataset.step);
+  const prevStepNumber = currentStepNumber - 1;
+  const prevStep = document.querySelector(`.wizard-step[data-step="${prevStepNumber}"]`);
+  
+  if (!prevStep) return;
+
+  console.log(`Moving from step ${currentStepNumber} to step ${prevStepNumber}`);
+
+  // Hide current step
+  currentStep.classList.remove('active');
+  currentStep.classList.add('hidden');
+
+  // Show previous step
+  prevStep.classList.remove('hidden');
+  prevStep.classList.add('active');
+
+  // Re-initialize radar chart if going back to step 2
+  if (prevStepNumber === 2) {
+    setTimeout(() => {
+      updateRadarChart();
+    }, 300);
+  }
+
+  // Scroll to top of step
+  prevStep.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function calculateEnhancedSoilHealthResults() {
   const scores = calculateCurrentScores();
   
@@ -3819,6 +3851,7 @@ if (document.readyState === 'loading') {
   initApp();
 
 }
+
 
 
 
