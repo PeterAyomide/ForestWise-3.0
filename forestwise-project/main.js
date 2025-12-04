@@ -560,59 +560,6 @@ function updateRadarChart() {
   }
 }
 
-function calculateCurrentScores() {
-  // Get values from form inputs with defaults
-  const soilTexture = document.querySelector('input[name="soilTexture"]:checked')?.value;
-  const erosion = document.querySelector('input[name="erosion"]:checked')?.value;
-  const vegetation = document.querySelector('input[name="vegetation"]:checked')?.value;
-  const landUse = document.querySelector('input[name="landUse"]:checked')?.value;
-  
-  console.log('Form values:', { soilTexture, erosion, vegetation, landUse });
-  
-  return {
-    soilQuality: calculateSoilScore(soilTexture),
-    erosionControl: calculateErosionScore(erosion),
-    vegetationCover: calculateVegetationScore(vegetation),
-    landManagement: calculateLandUseScore(landUse)
-  };
-}
-
-function calculateSoilScore(soilTexture) {
-  switch(soilTexture) {
-    case 'healthy': return 5;
-    case 'moderate': return 3;
-    case 'poor': return 1;
-    default: return 1; // Default to 1 instead of 0
-  }
-}
-
-function calculateErosionScore(erosion) {
-  switch(erosion) {
-    case 'none': return 5;
-    case 'moderate': return 2;
-    default: return 1; // Default to 1 instead of 0
-  }
-}
-
-function calculateVegetationScore(vegetation) {
-  switch(vegetation) {
-    case 'high': return 5;
-    case 'medium': return 3;
-    case 'low': return 1;
-    default: return 1; // Default to 1 instead of 0
-  }
-}
-
-function calculateLandUseScore(landUse) {
-  switch(landUse) {
-    case 'conservation': return 5;
-    case 'agriculture': return 3;
-    case 'grazing': return 2;
-    case 'degraded': return 1;
-    default: return 1; // Default to 1 instead of 0
-  }
-}
-
 function goToNextStep() {
   const currentStep = document.querySelector('.wizard-step.active');
   if (!currentStep) {
@@ -639,53 +586,22 @@ function goToNextStep() {
   nextStep.classList.remove('hidden');
   nextStep.classList.add('active');
 
-  // Initialize step-specific features
+  // === CRITICAL LOGIC ===
   if (nextStepNumber === 2) {
-    // Initialize radar chart for step 2
+    // We are now on Step 2, initialize/update radar
     setTimeout(() => {
-      console.log('Initializing radar chart for step 2...');
       updateRadarChart();
     }, 300);
-  } else if (nextStepNumber === 3) {
-    // Calculate results for step 3
-    console.log('Calculating results for step 3...');
+  } 
+  else if (nextStepNumber === 3) {
+    // We are moving to Step 3 (Results), perform calculation
     calculateEnhancedSoilHealthResults();
     saveSoilHealthAssessment();
   }
+  // ======================
 
   // Scroll to top of new step
   nextStep.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function goToPrevStep() {
-  const currentStep = document.querySelector('.wizard-step.active');
-  if (!currentStep) return;
-
-  const currentStepNumber = parseInt(currentStep.dataset.step);
-  const prevStepNumber = currentStepNumber - 1;
-  const prevStep = document.querySelector(`.wizard-step[data-step="${prevStepNumber}"]`);
-  
-  if (!prevStep) return;
-
-  console.log(`Moving from step ${currentStepNumber} to step ${prevStepNumber}`);
-
-  // Hide current step
-  currentStep.classList.remove('active');
-  currentStep.classList.add('hidden');
-
-  // Show previous step
-  prevStep.classList.remove('hidden');
-  prevStep.classList.add('active');
-
-  // Re-initialize radar chart if going back to step 2
-  if (prevStepNumber === 2) {
-    setTimeout(() => {
-      updateRadarChart();
-    }, 300);
-  }
-
-  // Scroll to top of step
-  prevStep.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function calculateEnhancedSoilHealthResults() {
@@ -3903,6 +3819,7 @@ if (document.readyState === 'loading') {
   initApp();
 
 }
+
 
 
 
