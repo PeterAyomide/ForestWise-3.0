@@ -21,11 +21,7 @@ exports.handler = async function (event) {
     const body = JSON.parse(event.body || "{}");
     const { message, conversationHistory = [], imageData, context, speciesData } = body;
 
-    // ============================================================
-    // ⚠️ PASTE YOUR GEMINI API KEY BELOW (Inside the quotes)
-    // ============================================================
-    const API_KEY = "AIzaSyBmxFHLfaqG552pFTnKjFKpOByF2MMgqHI"; 
-    // ============================================================
+   const API_KEY = process.env.GEMINI_API_KEY;
 
     if (!API_KEY || API_KEY.includes("PASTE_YOUR")) {
       return {
@@ -133,4 +129,5 @@ exports.handler = async function (event) {
   }
 
 };
+
 
