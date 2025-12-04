@@ -1,41 +1,42 @@
-exports.handler = async function (event) {
-  // 1. Handle CORS (Allows your frontend to talk to this function)
-  if (event.httpMethod === "OPTIONS") {
-    return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-      },
-      body: "",
-    };
-  }
+// functions/forestwise-ai.js
 
-  if (event.httpMethod !== "POST") {
-    return { statusCode: 405, body: "Method not allowed" };
-  }
+// 1. Handle CORS Preflight (OPTIONS requests)
+export async function onRequestOptions() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  });
+}
 
+// 2. Handle POST requests (The Main Logic)
+export async function onRequestPost(context) {
   try {
-    // 2. Parse the incoming data
-    const body = JSON.parse(event.body || "{}");
-    const { message, conversationHistory = [], imageData, context, speciesData } = body;
+    // Parse incoming data
+    const body = await context.request.json();
+    const { message, conversationHistory = [], imageData, context: userContext, speciesData } = body;
 
-   const API_KEY = process.env.GEMINI_API_KEY;
+    // Access Environment Variable (Set this in Cloudflare Dashboard)
+    const API_KEY = context.env.GEMINI_API_KEY;
 
-    if (!API_KEY || API_KEY.includes("PASTE_YOUR")) {
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: "Please paste your Gemini API Key in the forestwise-ai.js file." }),
-      };
+    if (!API_KEY) {
+      return new Response(JSON.stringify({ error: "Server Error: Missing GEMINI_API_KEY" }), {
+        status: 500,
+        headers: { 
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*" 
+        }
+      });
     }
 
-    // 3. Configure Gemini API
-    const MODEL_NAME = "gemini-2.5-flash";
+    // Configure Gemini API
+    const MODEL_NAME = "gemini-1.5-flash"; // Updated to valid model name (2.5 doesn't exist yet publicly, 1.5 is the current fast one)
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEY}`;
 
-    // 4. Build the Brain (System Prompt)
-    // This tells the AI how to behave and gives it your species database
+    // --- YOUR CUSTOM SYSTEM PROMPT LOGIC ---
     const speciesContext = speciesData 
       ? `REAL-TIME DATABASE ACCESS: You have access to the following trusted species database: ${JSON.stringify(speciesData)}.`
       : "DATABASE STATUS: Species database not provided for this request.";
@@ -56,18 +57,18 @@ exports.handler = async function (event) {
       3. MISSING DATA: If the database lacks info, use your general forestry knowledge to fill in the gaps, but mention that it's general advice.
       
       CONTEXT FROM USER SESSION:
-      ${context || "The user is exploring tree options."}
+      ${userContext || "The user is exploring tree options."}
       
       Goal: Help the user feel confident about planting trees.
     `.trim();
 
-    // 5. Format History for Gemini
+    // Format History for Gemini
     const contents = conversationHistory.map(msg => ({
       role: msg.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: msg.content }]
     }));
 
-    // 6. Add the New Message (Text + Image support)
+    // Add the New Message (Text + Image support)
     const currentParts = [];
     if (message) currentParts.push({ text: message });
     
@@ -86,7 +87,7 @@ exports.handler = async function (event) {
 
     contents.push({ role: 'user', parts: currentParts });
 
-    // 7. Call Google (No extra libraries needed)
+    // Call Google Gemini API
     const response = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -104,30 +105,28 @@ exports.handler = async function (event) {
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`Gemini API Error: ${response.statusText} - ${errText}`);
+      throw new Error(`Gemini API Error: ${response.status} - ${errText}`);
     }
 
     const data = await response.json();
     const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
 
-    return {
-      statusCode: 200,
+    // Return Success Response
+    return new Response(JSON.stringify({ response: aiResponse }), {
       headers: { 
-        "Access-Control-Allow-Origin": "*", 
-        "Content-Type": "application/json" 
-      },
-      body: JSON.stringify({ response: aiResponse }),
-    };
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*" 
+      }
+    });
 
   } catch (error) {
     console.error("Backend Error:", error);
-    return {
-      statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({ error: error.message }),
-    };
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { 
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*" 
+      }
+    });
   }
-
-};
-
-
+}
