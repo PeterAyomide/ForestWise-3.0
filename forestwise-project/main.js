@@ -3280,6 +3280,7 @@ function closeMenu() {
  * @param {string} pageName - The key of the page from the 'pages' config object.
  */
 function showPage(pageName) {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
   // You will need to make sure 'pages', 'currentPage', and 'pageHistory' are defined globally in your script
   
   // Check if page exists in config
@@ -3902,5 +3903,6 @@ if (document.readyState === 'loading') {
   initApp();
 
 }
+
 
 
